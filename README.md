@@ -53,3 +53,12 @@ Build
 * Edit config.xml to reflect the paths of your roms and res directories. By default, they should be in the working directory.
 * Copy the OutRun revision B romset to the roms subdirectory. 
 * You can then compile, debug and run from Visual Studio as expected.
+
+DREAMCAST
+download boost.tar.gz and extract and pass the path to cmake
+ cmake -DCMAKE_TOOLCHAIN_FILE="$KOS_CMAKE_TOOLCHAIN" -D__DREAMCAST__=1 -DSDL2_DIR="/opt/toolchains/dc/kos/addons/lib/dreamcast/cmake/SDL2" -DSDL2_INCLUDE_DIRS="/opt/toolchains/dc/kos/addons/include/SDL2" -DSDL2_LIBRARIES="/opt/toolchains/dc/kos/addons/lib/dreamcast/libSDL2.a;/opt/toolchains/dc/kos/addons/lib/dreamcast/libSDL2main.a" -DBoost_INCLUDE_DIR=/home/gpf/code/dreamcast/boost_1_87_0/ -DTARGET=linux.cmake -Bbuild ./cmake
+
+Test running in dreamcast emulator flycast!!
+
+https://github.com/user-attachments/assets/f3c13b21-0f67-4102-a1b9-99c079c0f9bc
+
