@@ -308,7 +308,8 @@ int main(int argc, char* argv[])
     // Load gamecontrollerdb.txt mappings
     if (SDL_GameControllerAddMappingsFromFile((config.data.res_path + "gamecontrollerdb.txt").c_str()) == -1)
         std::cout << "Unable to load controller mapping" << std::endl;
-
+	SDL_SetHint(SDL_HINT_VIDEO_DOUBLE_BUFFER, "1");
+    SDL_SetHint(SDL_HINT_DC_VIDEO_MODE, "SDL_DC_TEXTURED_VIDEO");
     // Initialize timer and video systems
     if (SDL_Init(SDL_INIT_TIMER | SDL_INIT_VIDEO | SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER | SDL_INIT_HAPTIC) == -1)
     {

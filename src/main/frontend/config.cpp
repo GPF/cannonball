@@ -36,7 +36,7 @@ Config config;
 
 Config::Config(void)
 {
-    data.cfg_file = "./config.xml";
+    data.cfg_file = "/cd/config.xml";
     
     // Setup default sounds
     music_t magical, breeze, splash;
@@ -87,9 +87,9 @@ void Config::load()
     // ------------------------------------------------------------------------
     // Data Settings
     // ------------------------------------------------------------------------
-    data.rom_path         = pt_config.get("data.rompath", "roms/");  // Path to ROMs
-    data.res_path         = pt_config.get("data.respath", "res/");   // Path to ROMs
-    data.save_path        = pt_config.get("data.savepath", "./");    // Path to Save Data
+    data.rom_path         = pt_config.get("data.rompath", "/cd/roms/");  // Path to ROMs
+    data.res_path         = pt_config.get("data.respath", "/cd/res/");   // Path to ROMs
+    data.save_path        = pt_config.get("data.savepath", "/cd/");    // Path to Save Data
     data.crc32            = pt_config.get("data.crc32", 1);
 
     data.file_scores      = data.save_path + "hiscores.xml";
@@ -111,7 +111,7 @@ void Config::load()
     // ------------------------------------------------------------------------
    
     video.mode       = pt_config.get("video.mode",               2); // Video Mode: Default is Full Screen 
-    video.scale      = pt_config.get("video.window.scale",       2); // Video Scale: Default is 2x    
+    video.scale      = pt_config.get("video.window.scale",       1); // Video Scale: Default is 2x    
     video.scanlines  = pt_config.get("video.scanlines",          0); // Scanlines
     video.fps        = pt_config.get("video.fps",                2); // Default is 60 fps
     video.fps_count  = pt_config.get("video.fps_counter",        0); // FPS Counter

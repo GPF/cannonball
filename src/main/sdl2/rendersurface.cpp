@@ -142,8 +142,9 @@ bool Render::init(int src_width, int src_height,
     window = SDL_CreateWindow(
         "Cannonball", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, scn_width, scn_height,
         flags);
-
-    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED|SDL_RENDERER_PRESENTVSYNC);
+    SDL_SetHint(SDL_HINT_FRAMEBUFFER_ACCELERATION, "software");
+    renderer = SDL_CreateRenderer(window, 1, SDL_RENDERER_PRESENTVSYNC);
+    // renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED|SDL_RENDERER_PRESENTVSYNC);
     texture = SDL_CreateTexture(renderer,
                                SDL_PIXELFORMAT_ARGB8888,
                                SDL_TEXTUREACCESS_STREAMING,

@@ -1,0 +1,64 @@
+{
+    "files.associations": {
+        "archdep.h": "c",
+        "stdlib.h": "c",
+        "cstdlib": "c",
+        "*.inc": "c",
+        "format": "c",
+        "internet": "c",
+        "regex": "c",
+        "vsidui_sdl.h": "c",
+        "vsync.h": "c",
+        "sdl_dreamcast.h": "c",
+        "types.h": "c",
+        "uimenu.h": "c",
+        "compare": "c",
+        "cstdint": "c",
+        "array": "c",
+        "string_view": "c",
+        "initializer_list": "c",
+        "span": "c",
+        "vice.h": "c",
+        "strings.h": "c",
+        "socketimpl.h": "c",
+        "host.h": "c",
+        "sdl2_scancode_to_dinput.h": "c",
+        "*.cgh": "c",
+        "brassert.h": "c",
+        "drv.h": "c",
+        "shortcut.h": "c",
+        "numbers": "c",
+        "world.h": "c",
+        "random": "cpp",
+        "deque": "c",
+        "string": "c",
+        "vector": "c",
+        "config.h": "c",
+        "harness.h": "c",
+        "hooks.h": "c"
+    },
+    "C_Cpp.default.includePath": [
+        "${workspaceFolder}/**",
+        "/opt/toolchains/dc/kos/include/",
+        "/opt/toolchains/dc/kos/addons/include/",
+        "/opt/toolchains/dc/kos-ports/include/",
+        "/opt/toolchains/dc/sh-elf/sh-elf/include/"
+    ],
+    "C_Cpp.default.defines": [
+            "_arch_dreamcast"
+    ],
+    "C_Cpp.default.compilerPath": "/opt/toolchains/dc/sh-elf/bin/sh-elf-gcc",
+    "C_Cpp.default.cStandard": "c11",
+    "C_Cpp.default.cppStandard": "c++17",
+    "C_Cpp.default.intelliSenseMode": "",
+
+    "terminal.integrated.defaultProfile.linux": "kos-bash",
+    "terminal.integrated.profiles.linux": {
+        "kos-bash": {
+            "path": "/usr/bin/bash",
+            "args": ["--init-file", "${workspaceFolder}/.vscode/kos_environ.sh" ],
+            "overrideName": true
+        }
+    },
+    "C_Cpp.errorSquiggles": "disabled"
+}

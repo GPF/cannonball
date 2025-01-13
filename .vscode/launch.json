@@ -1,0 +1,275 @@
+{
+    "version": "0.2.0",
+// "logging": {
+//     "trace": true,
+//     "traceFile": "${workspaceFolder}/vslivestream-trace.txt"
+// },
+    "configurations": [
+        {
+            "version": "0.2.0",
+            "configurations": [
+                {
+                    "name": "Debug Flycast",
+                    "type": "cppdbg",
+                    "request": "launch",
+                    "program": "${workspaceFolder}/flycast", // Path to your Flycast executable
+                    "args": [
+                        "-config", "config:Debug.GDBEnabled=yes",
+                        "-config", "config:Debug.GDBPort=9999",
+                        "-config", "config:Debug.GDBWaitForConnection=yes",
+                        "-config", "window:maximized=no",
+                        "/home/gpf/code/dreamcast/dethrace/build/dethrace.cdi" // Path to your game CDI
+                    ],
+                    "stopAtEntry": false,
+                    "cwd": "${workspaceFolder}",
+                    "environment": [],
+                    "externalConsole": false,
+                    "MIMode": "gdb",
+                    "miDebuggerPath": "gdb-multiarch", // or "gdb-multiarch" for SH-4 support
+                    "setupCommands": [
+                        {
+                            "description": "Enable pretty-printing for gdb",
+                            "text": "-enable-pretty-printing",
+                            "ignoreFailures": true
+                        },
+                        {
+                            "text": "set architecture sh4",
+                            "ignoreFailures": true
+                        },
+                        {
+                            "text": "set endian little",
+                            "ignoreFailures": true
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "Debug Flycast",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "/usr/local/bin/flycast", // Path to your Flycast executable
+            "args": [
+                "-config", "config:Debug.GDBEnabled=yes",
+                "-config", "config:Debug.GDBPort=9999",
+                "-config", "config:Debug.GDBWaitForConnection=yes",
+                "-config", "window:maximized=no",
+                "/home/gpf/code/dreamcast/dethrace/build/dethrace.cdi" // Path to your game CDI
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "miDebuggerPath": "/opt/toolchains/dc/sh-elf/bin/sh-elf-gdb", // or "gdb-multiarch" for SH-4 support
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "text": "set architecture sh4",
+                    "ignoreFailures": true
+                },
+                {
+                    "text": "set endian little",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "(gdb) Launch",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/${workspaceFolderBasename}.elf",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "miDebuggerPath": "/opt/toolchains/dc/sh-elf/bin/sh-elf-gdb",
+            "setupCommands": [{
+                "text": "set architecture sh",
+                "description": "Set GDB Arch to SuperH",
+                "ignoreFailures" : false,
+            }],
+            "miDebuggerServerAddress": ":9999",
+            "debugServerPath": "/home/gpf/code/dreamcast/lxdream-nitro/builddir/lxdream-nitro",
+            "debugServerArgs": "--gdb-sh4=9999 -A null ${workspaceRoot}/vice/vice.cdi -n",
+            "filterStdout": true,
+            "filterStderr": true,
+            // run on connect
+            "stopAtConnect": false,
+            // stop at main
+            "stopAtEntry": true,
+            "externalConsole": false,
+            "avoidWindowsConsoleRedirection": false,
+            "internalConsoleOptions": "openOnSessionStart",
+            "launchCompleteCommand": "exec-run",
+            "serverStarted": "SH4 GDB server running on port",
+            "useExtendedRemote": true
+        },
+        {
+            "name": "BBA_LAN",
+            "type": "cppdbg",
+            "request": "launch",
+            "preLaunchTask": "Build",
+            "cwd": "${workspaceFolder}",
+            "program": "${workspaceFolder}/${workspaceFolderBasename}.elf",
+            //"program": "${workspaceFolder}/2ndmix.elf",
+            "MIMode": "gdb",
+            "miDebuggerPath": "/opt/toolchains/dc/sh-elf/bin/sh-elf-gdb",
+            "miDebuggerServerAddress":"localhost:2159",//common misconception: we connect to the gdb server offered by dc-tool-ip, NOT to the Dreamcast directly !
+            "debugServerPath":"/opt/toolchains/dc/bin/dc-tool-ip",
+            "debugServerArgs": "-g -t 192.168.1.210 -x ${workspaceFolder}/${workspaceFolderBasename}.elf",
+            //"debugServerArgs": "-g -t 192.168.1.210 -x ${workspaceFolder}/2ndmix.elf",
+            //"stopAtEntry": true,
+            "externalConsole": false,
+            "avoidWindowsConsoleRedirection": false,
+            "internalConsoleOptions": "openOnSessionStart",
+        },
+        {
+            "name": "SERIAL",
+            "type": "cppdbg",
+            "request": "launch",
+            "preLaunchTask": "Build",
+            "cwd": "${workspaceFolder}",
+            "program": "${workspaceFolder}/${workspaceFolderBasename}.elf",
+            //"program": "${workspaceFolder}/2ndmix.elf",
+            "MIMode": "gdb",
+            "miDebuggerPath": "/opt/toolchains/dc/sh-elf/bin/sh-elf-gdb",
+            "miDebuggerServerAddress":"localhost:2159",//common misconception: we connect to the gdb server offered by dc-tool-ser, NOT to the Dreamcast directly !
+            "debugServerPath":"/opt/toolchains/dc/bin/dc-tool-ser",
+            "debugServerArgs": "-g -t /dev/ttyS0 -x ${workspaceFolder}/${workspaceFolderBasename}.elf",
+            //"debugServerArgs": "-g -t /dev/ttyS0 -x ${workspaceFolder}/2ndmix.elf",
+            //"stopAtEntry": true,
+            "externalConsole": false,
+            "avoidWindowsConsoleRedirection": false,
+            "internalConsoleOptions": "openOnSessionStart",
+        },
+        {
+            "name": "LXDream",
+            "type": "cppdbg",
+            "request": "launch",
+            // "preLaunchTask": "Build",
+            "cwd": "${workspaceRoot}",
+            "program": "${workspaceFolder}/vice/src/x64.elf",
+            //"program": "${workspaceFolder}/2ndmix.elf",
+            "miDebuggerPath": "/opt/toolchains/dc/sh-elf/bin/sh-elf-gdb",
+            "setupCommands": [{
+                "text": "set architecture sh",
+                "description": "Set GDB Arch to SuperH",
+                "ignoreFailures" : false,
+            }],
+            "miDebuggerServerAddress": ":9999",
+            "debugServerPath": "/home/gpf/code/dreamcast/lxdream-nitro/builddir/lxdream-nitro",
+            "debugServerArgs": "--gdb-sh4=9999 -A null ${workspaceRoot}/vice/vice.cdi -n",
+            "filterStdout": true,
+            "filterStderr": true,
+            // run on connect
+            "stopAtConnect": false,
+            // stop at main
+            "stopAtEntry": true,
+            "externalConsole": false,
+            "avoidWindowsConsoleRedirection": false,
+            "internalConsoleOptions": "openOnSessionStart",
+            "launchCompleteCommand": "exec-run",
+            "serverStarted": "SH4 GDB server running on port",
+            "useExtendedRemote": true
+        },
+        {
+            "name": "VICE x64 debug on lxdream-nitro",
+            "type": "cppdbg",
+            "request": "launch",
+            "preLaunchTask": "VICE Build",
+            "cwd": "${workspaceRoot}",
+            "program": "${workspaceRoot}/vice/src/x64.elf",
+            "MIMode": "gdb",
+            "miDebuggerPath": "/opt/toolchains/dc/sh-elf/bin/sh-elf-gdb",
+            "setupCommands": [{
+                "text": "set architecture sh",
+                "description": "Set GDB Arch to SuperH",
+                "ignoreFailures" : false
+            }],
+            "miDebuggerServerAddress": ":9999",
+            "debugServerPath": "/home/gpf/code/dreamcast/lxdream-nitro/builddir/lxdream-nitro",
+            "debugServerArgs": "--gdb-sh4=9999 -A VICE ${workspaceRoot}/vice/vice.cdi -n",
+            "filterStdout": true,
+            "filterStderr": true,
+            "stopAtConnect": true,
+            "stopAtEntry": true,
+            "externalConsole": false,
+            "avoidWindowsConsoleRedirection": false,
+            "internalConsoleOptions": "openOnSessionStart",
+            "launchCompleteCommand": "exec-run",
+            "serverStarted": "SH4 GDB server running on port",
+            "useExtendedRemote": true,
+            "enableJustMyCode": true,
+            "loadAllModules": false
+        },
+        {
+            "name": "debug on flycast",
+            "type": "cppdbg",
+            "request": "launch",
+            "cwd": "${workspaceRoot}",
+            "program": "${workspaceRoot}/build/cannonball.elf",
+            "MIMode": "gdb",
+            "miDebuggerPath": "/opt/toolchains/dc/sh-elf/bin/sh-elf-gdb",
+            "setupCommands": [
+                {
+                    "text": "set architecture sh",
+                    "description": "Set GDB Arch to SuperH",
+                    "ignoreFailures": false
+                }
+            ],
+            "miDebuggerServerAddress": ":9999",
+            "debugServerPath": "/home/gpf/code/dreamcast/flycast/build/flycast",
+            "debugServerArgs": "-config config:Debug.GDBEnabled=yes -config config:Debug.GDBPort=9999 -config config:Debug.GDBWaitForConnection=yes -config window:maximized=no /home/gpf/code/dreamcast/UE1/build/unreal.cdi",
+            "filterStdout": true,
+            "filterStderr": true,
+            "stopAtConnect": true,
+            "stopAtEntry": true,
+            "externalConsole": true,
+            "avoidWindowsConsoleRedirection": false,
+            "internalConsoleOptions": "openOnSessionStart",
+            "launchCompleteCommand": "exec-run",
+            "serverStarted": "SH4 GDB server running on port",
+            "useExtendedRemote": true,
+            "enableJustMyCode": true,
+            "logging": {
+                "engineLogging": true,
+                "trace": true,
+                "traceResponse": true
+            }
+        },
+        {
+            "name": "Connect to GDB Server",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceRoot}/build/dethrace.elf",
+            "cwd": "${workspaceRoot}",
+            "MIMode": "gdb",
+            "miDebuggerPath": "/opt/toolchains/dc/sh-elf/bin/sh-elf-gdb",
+            "miDebuggerServerAddress": "localhost:2159",
+            "setupCommands": [
+                {
+                    "text": "set architecture sh",
+                    "description": "Set GDB Arch to SuperH",
+                    "ignoreFailures": false
+                }
+            ],
+            "externalConsole": true,
+            "stopAtConnect": true,
+            "stopAtEntry": true,
+            "logging": {
+                "engineLogging": true,
+                "trace": true,
+                "traceResponse": true
+            }
+        }
+        
+            
+    ]
+}

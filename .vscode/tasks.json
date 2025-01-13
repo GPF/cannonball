@@ -1,0 +1,58 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Setup KOS Environment",
+            "type": "shell",
+            "command": "bash",
+            "args": [
+                "--init-file",
+                "${workspaceFolder}/.vscode/kos_environ.sh"
+            ],
+            "problemMatcher": [],
+            "group": {
+                "kind": "setup",
+                "isDefault": true
+            },
+            "dependsOrder": "sequence",
+            "terminal": "shared"
+        },
+        {
+            "label": "Build",
+            "type": "shell",
+            "command": "/bin/bash",
+            "args": [
+                "-c",
+                "make x64"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/vice/"
+            },
+            "group": "build",
+            "problemMatcher": [],
+            "dependsOn": [
+                "Setup KOS Environment"
+            ],
+            "dependsOrder": "sequence",
+            "terminal": "shared"
+        },
+        {
+            "label": "VICE Build",
+            "type": "shell",
+            "command": "/bin/bash",
+            "args": [
+                "-c",
+                "bash ${workspaceFolder}/.vscode/kos_build.sh"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always"
+            },
+            "terminal": "shared"
+        }
+    ]
+}

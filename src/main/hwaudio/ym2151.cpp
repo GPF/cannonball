@@ -51,7 +51,7 @@ uint32_t       noise_f;             /* current noise period */
 
 uint32_t       csm_req;             /* CSM  KEY ON / KEY OFF sequence request */
 
-uint32_t       irq_enable;          /* IRQ enable for timer B (bit 3) and timer A (bit 2); bit 7 - CSM mode (keyon to all slots, everytime timer A overflows) */
+uint32_t       irq_enable_cnbl;          /* IRQ enable for timer B (bit 3) and timer A (bit 2); bit 7 - CSM mode (keyon to all slots, everytime timer A overflows) */
 uint32_t       status;              /* chip status (BUSY, IRQ Flags) */
 uint8_t        connects[8];         /* channels connections */
 
@@ -750,12 +750,12 @@ static TIMER_CALLBACK( timer_callback_a )
     YM2151 *chip = (YM2151 *)ptr;
     timer_A->adjust(timer_A_time[ timer_A_index ]);
     timer_A_index_old = timer_A_index;
-    if (irq_enable & 0x04)
+    if (irq_enable_cnbl & 0x04)
     {
         status |= 1;
         machine.scheduler().timer_set(attotime::zero, FUNC(irqAon_callback), 0, chip);
     }
-    if (irq_enable & 0x80)
+    if (irq_enable_cnbl & 0x80)
         csm_req = 2;        /* request KEY ON / KEY OFF sequence */
 }
 static TIMER_CALLBACK( timer_callback_b )
@@ -763,7 +763,7 @@ static TIMER_CALLBACK( timer_callback_b )
     YM2151 *chip = (YM2151 *)ptr;
     timer_B->adjust(timer_B_time[ timer_B_index ]);
     timer_B_index_old = timer_B_index;
-    if (irq_enable & 0x08)
+    if (irq_enable_cnbl & 0x08)
     {
         status |= 2;
         machine.scheduler().timer_set(attotime::zero, FUNC(irqBon_callback), 0, chip);
@@ -1008,7 +1008,7 @@ void YM2151::write_reg(int r, int v)
 
         case 0x14:    /* CSM, irq flag reset, irq enable, timer start/stop */
 
-            irq_enable = v;    /* bit 3-timer B, bit 2-timer A, bit 7 - CSM */
+            irq_enable_cnbl = v;    /* bit 3-timer B, bit 2-timer A, bit 7 - CSM */
 
             if (v&0x10)    /* reset timer A irq flag */
             {
@@ -1358,7 +1358,7 @@ void YM2151::ym2151_reset_chip()
 
     test= 0;
 
-    irq_enable = 0;
+    irq_enable_cnbl = 0;
 #ifdef USE_MAME_TIMERS
     /* ASG 980324 -- reset the timers before writing to the registers */
     timer_A->enable(false);
@@ -2023,7 +2023,7 @@ void YM2151::stream_update()
         if (tim_B_val<=0)
         {
             tim_B_val += tim_B_tab[ timer_B_index ];
-            if ( irq_enable & 0x08 )
+            if ( irq_enable_cnbl & 0x08 )
             {
                 int oldstate = status & 3;
                 status |= 2;
@@ -2093,14 +2093,14 @@ void YM2151::stream_update()
             if (tim_A_val <= 0)
             {
                 tim_A_val += tim_A_tab[ timer_A_index ];
-                if (irq_enable & 0x04)
+                if (irq_enable_cnbl & 0x04)
                 {
                     int oldstate = status & 3;
                     status |= 1;
                     //if ((!oldstate) && (irqhandler)) (*irqhandler)(device, 1);
                     if (oldstate==0) irq = true;
                 }
-                if (irq_enable & 0x80)
+                if (irq_enable_cnbl & 0x80)
                     csm_req = 2;    /* request KEY ON / KEY OFF sequence */
             }
         }

@@ -57,10 +57,10 @@ private:
     static const uint32_t SAMPLES  = 1024;
 
     // Latency (in ms) and thus target buffer size
-    const static int SND_DELAY = 20;
+    const static int SND_DELAY = 0;
 
     // allowed "spread" between too many and too few samples in the buffer (ms)
-    const static int SND_SPREAD = 7;
+    const static int SND_SPREAD = 14;
     
     // Buffer used to mix PCM and YM channels together
     uint16_t* mix_buffer;

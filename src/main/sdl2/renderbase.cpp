@@ -54,5 +54,9 @@ void RenderBase::convert_palette(uint32_t adr, uint32_t r1, uint32_t g1, uint32_
 
 void RenderBase::set_shadow_intensity(float f)
 {
+#ifdef __DREAMCAST__
+    shadow_multi = (int)((255.0f * f) + 0.5f);
+#else
     shadow_multi = (int) std::round(255.0f * f);
+#endif
 }
