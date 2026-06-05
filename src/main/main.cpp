@@ -11,6 +11,14 @@
 // SDL Library
 #include <SDL.h>
 
+#ifdef __DREAMCAST__
+#include <arch/arch.h>
+#include <dc/maple/controller.h>
+#include <kos/dbglog.h>
+#include <kos/thread.h>
+#include <stdint.h>
+#endif
+
 // SDL Specific Code
 #include "sdl2/timer.hpp"
 #include "sdl2/input.hpp"
@@ -51,11 +59,17 @@ Audio cannonball::audio;
 Menu* menu;
 bool pause_engine;
 
+#ifdef __DREAMCAST__
+#define DC_TRACE(...) dbglog(DBG_INFO, __VA_ARGS__)
+#else
+#define DC_TRACE(...) do {} while (0)
+#endif
 
 // ------------------------------------------------------------------------------------------------
 
 static void quit_func(int code)
 {
+    DC_TRACE("cannonball: quit_func(%d)\n", code);
     audio.stop_audio();
     input.close_joy();
     forcefeedback::close();
@@ -76,7 +90,11 @@ static void process_events(void)
             case SDL_KEYDOWN:
                 // Handle key presses.
                 if (event.key.keysym.sym == SDLK_ESCAPE)
+#ifdef __DREAMCAST__
+                    arch_exit();
+#else
                     state = STATE_QUIT;
+#endif
                 else
                     input.handle_key_down(&event.key.keysym);
                 break;
@@ -114,10 +132,22 @@ static void process_events(void)
                 break;
 
             case SDL_JOYDEVICEADDED:
+                DC_TRACE("cannonball: SDL_JOYDEVICEADDED which=%ld\n", (long)event.jdevice.which);
                 input.open_joy();
                 break;
 
             case SDL_JOYDEVICEREMOVED:
+                DC_TRACE("cannonball: SDL_JOYDEVICEREMOVED which=%ld\n", (long)event.jdevice.which);
+                input.close_joy();
+                break;
+
+            case SDL_CONTROLLERDEVICEADDED:
+                DC_TRACE("cannonball: SDL_CONTROLLERDEVICEADDED which=%ld\n", (long)event.cdevice.which);
+                input.open_joy();
+                break;
+
+            case SDL_CONTROLLERDEVICEREMOVED:
+                DC_TRACE("cannonball: SDL_CONTROLLERDEVICEREMOVED which=%ld\n", (long)event.cdevice.which);
                 input.close_joy();
                 break;
 
@@ -132,6 +162,12 @@ static void process_events(void)
 static void tick()
 {
     frame++;
+    static int last_state = -1;
+    if (last_state != state)
+    {
+        DC_TRACE("cannonball: state %d -> %d frame=%d\n", last_state, state, frame);
+        last_state = state;
+    }
 
     // Non standard FPS: Determine whether to tick certain logic for the current frame.
     if (config.fps == 60)
@@ -151,6 +187,12 @@ static void tick()
     {
         case STATE_GAME:
         {
+            static int game_ticks_logged = 0;
+            if (game_ticks_logged < 4)
+            {
+                DC_TRACE("cannonball: STATE_GAME tick begin tick_frame=%d\n", tick_frame);
+                game_ticks_logged++;
+            }
             if (tick_frame)
             {
                 if (input.has_pressed(Input::TIMER)) outrun.freeze_timer = !outrun.freeze_timer;
@@ -172,15 +214,19 @@ static void tick()
         break;
 
         case STATE_INIT_GAME:
+            DC_TRACE("cannonball: STATE_INIT_GAME begin jap=%d\n", config.engine.jap);
             if (config.engine.jap && !roms.load_japanese_roms())
             {
+                DC_TRACE("cannonball: STATE_INIT_GAME japanese rom load failed\n");
                 state = STATE_QUIT;
             }
             else
             {
                 tick_frame = true;
                 pause_engine = false;
+                DC_TRACE("cannonball: outrun.init begin\n");
                 outrun.init();
+                DC_TRACE("cannonball: outrun.init done\n");
                 state = STATE_GAME;
             }
             break;
@@ -192,9 +238,11 @@ static void tick()
             break;
 
         case STATE_INIT_MENU:
+            DC_TRACE("cannonball: STATE_INIT_MENU begin\n");
             oinputs.init();
             outrun.outputs->init();
             menu->init();
+            DC_TRACE("cannonball: STATE_INIT_MENU done\n");
             state = STATE_MENU;
             break;
     }
@@ -221,18 +269,65 @@ static void main_loop()
     double deltatime  = 0;              // Time we want an entire frame to take (ms)
     int deltaintegral = 0;              // Integer version of above
 
+#ifdef __DREAMCAST__
+    uint32_t perf_last = SDL_GetTicks();
+    int perf_frames = 0;
+    int perf_skipped_video = 0;
+    int dc_video_phase = 0;
+    uint32_t perf_tick = 0;
+    uint32_t perf_prepare = 0;
+    uint32_t perf_render = 0;
+    uint32_t perf_audio = 0;
+    uint32_t perf_total = 0;
+#endif
+
     while (state != STATE_QUIT)
     {
         frame_time.start();
+#ifdef __DREAMCAST__
+        const uint32_t perf_frame_start = SDL_GetTicks();
+#endif
         // Tick Engine
+#ifdef __DREAMCAST__
+        uint32_t perf_start = SDL_GetTicks();
+#endif
         tick();
+#ifdef __DREAMCAST__
+        perf_tick += SDL_GetTicks() - perf_start;
+#endif
 
         // Draw SDL Video
-        video.prepare_frame();
-        video.render_frame();
+#ifdef __DREAMCAST__
+        bool dc_skipped_video_this_frame = false;
+        const bool dc_render_video = state != STATE_GAME || (dc_video_phase++ % 3) == 0;
+        if (dc_render_video)
+        {
+            perf_start = SDL_GetTicks();
+#endif
+            video.prepare_frame();
+#ifdef __DREAMCAST__
+            perf_prepare += SDL_GetTicks() - perf_start;
+            perf_start = SDL_GetTicks();
+#endif
+            video.render_frame();
+#ifdef __DREAMCAST__
+            perf_render += SDL_GetTicks() - perf_start;
+        }
+        else
+        {
+            perf_skipped_video++;
+            dc_skipped_video_this_frame = true;
+        }
+#endif
 
         // Fill SDL Audio Buffer For Callback
+#ifdef __DREAMCAST__
+        perf_start = SDL_GetTicks();
+#endif
         audio.tick();
+#ifdef __DREAMCAST__
+        perf_audio += SDL_GetTicks() - perf_start;
+#endif
         
         // Calculate Timings. Cap Frame Rate. Note this might be trumped by V-Sync
         if (!vsync)
@@ -242,10 +337,44 @@ static void main_loop()
             t = frame_time.get_ticks();
             
             if (t < deltatime)
+            {
+#ifdef __DREAMCAST__
+                if (!dc_skipped_video_this_frame)
+#endif
                 SDL_Delay((Uint32)(deltatime - t));
+            }
 
             deltatime -= deltaintegral;
         }
+
+#ifdef __DREAMCAST__
+        perf_total += SDL_GetTicks() - perf_frame_start;
+        perf_frames++;
+        const uint32_t perf_now = SDL_GetTicks();
+        if (perf_now - perf_last >= 1000)
+        {
+            const int perf_rendered = perf_frames - perf_skipped_video;
+            DC_TRACE("cannonball: perf fps=%d rendered=%d skipped=%d avg_ms total=%lu tick=%lu prep=%lu render=%lu audio=%lu state=%d target_fps=%d\n",
+                     perf_frames,
+                     perf_rendered,
+                     perf_skipped_video,
+                     (unsigned long)(perf_total / perf_frames),
+                     (unsigned long)(perf_tick / perf_frames),
+                     (unsigned long)(perf_rendered > 0 ? perf_prepare / perf_rendered : 0),
+                     (unsigned long)(perf_rendered > 0 ? perf_render / perf_rendered : 0),
+                     (unsigned long)(perf_audio / perf_frames),
+                     state,
+                     config.fps);
+            perf_last = perf_now;
+            perf_frames = 0;
+            perf_skipped_video = 0;
+            perf_tick = 0;
+            perf_prepare = 0;
+            perf_render = 0;
+            perf_audio = 0;
+            perf_total = 0;
+        }
+#endif
 
         if (config.video.fps_count)
         {
@@ -289,61 +418,132 @@ static bool parse_command_line(int argc, char* argv[])
     return true;
 }
 
-int main(int argc, char* argv[])
+static int cannonball_main(int argc, char* argv[])
 {
+    DC_TRACE("cannonball: app thread start argc=%d\n", argc);
     // Parse command line arguments (config file location, LayOut data) 
     bool ok = parse_command_line(argc, argv);
+    DC_TRACE("cannonball: parse_command_line -> %d\n", ok);
 
     if (ok)
     {
+        DC_TRACE("cannonball: config.load begin\n");
         config.load(); // Load config.XML file
+        DC_TRACE("cannonball: config.load done rom=%s res=%s save=%s\n",
+                 config.data.rom_path.c_str(), config.data.res_path.c_str(), config.data.save_path.c_str());
+        DC_TRACE("cannonball: roms.load_revb_roms begin\n");
         ok = roms.load_revb_roms(config.sound.fix_samples);
+        DC_TRACE("cannonball: roms.load_revb_roms -> %d\n", ok);
     }
     if (!ok)
     {
-        quit_func(1);
-        return 0;
-    }
-
-    // Load gamecontrollerdb.txt mappings
-    if (SDL_GameControllerAddMappingsFromFile((config.data.res_path + "gamecontrollerdb.txt").c_str()) == -1)
-        std::cout << "Unable to load controller mapping" << std::endl;
-	SDL_SetHint(SDL_HINT_VIDEO_DOUBLE_BUFFER, "1");
-    SDL_SetHint(SDL_HINT_DC_VIDEO_MODE, "SDL_DC_TEXTURED_VIDEO");
-    // Initialize timer and video systems
-    if (SDL_Init(SDL_INIT_TIMER | SDL_INIT_VIDEO | SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER | SDL_INIT_HAPTIC) == -1)
-    {
-        std::cerr << "SDL Initialization Failed: " << SDL_GetError() << std::endl;
+        DC_TRACE("cannonball: startup failed before SDL init\n");
         return 1;
     }
 
+    // Load gamecontrollerdb.txt mappings
+    DC_TRACE("cannonball: SDL mappings begin\n");
+    if (SDL_GameControllerAddMappingsFromFile((config.data.res_path + "gamecontrollerdb.txt").c_str()) == -1)
+        std::cout << "Unable to load controller mapping" << std::endl;
+    DC_TRACE("cannonball: SDL mappings done\n");
+    // Initialize timer and video systems
+    DC_TRACE("cannonball: SDL_Init begin\n");
+    if (SDL_Init(SDL_INIT_TIMER | SDL_INIT_VIDEO | SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER | SDL_INIT_HAPTIC) == -1)
+    {
+        std::cerr << "SDL Initialization Failed: " << SDL_GetError() << std::endl;
+        DC_TRACE("cannonball: SDL_Init failed: %s\n", SDL_GetError());
+        return 1;
+    }
+    DC_TRACE("cannonball: SDL_Init done\n");
+
     // Load patched widescreen tilemaps
+    DC_TRACE("cannonball: load_widescreen_map begin\n");
     if (!omusic.load_widescreen_map(config.data.res_path))
         std::cout << "Unable to load widescreen tilemaps" << std::endl;
+    DC_TRACE("cannonball: load_widescreen_map done\n");
 
     // Initialize SDL Video
+    DC_TRACE("cannonball: video.init begin\n");
     config.set_fps(config.video.fps);
     if (!video.init(&roms, &config.video))
+    {
+        DC_TRACE("cannonball: video.init failed\n");
         quit_func(1);
+    }
+    DC_TRACE("cannonball: video.init done\n");
 
     // Initialize SDL Audio
+    DC_TRACE("cannonball: audio.init begin\n");
     audio.init();
+    DC_TRACE("cannonball: audio.init done\n");
 
     state = config.menu.enabled ? STATE_INIT_MENU : STATE_INIT_GAME;
 
     // Initalize SDL Controls
+    DC_TRACE("cannonball: input.init begin\n");
     input.init(config.controls.pad_id,
                config.controls.keyconfig, config.controls.padconfig, 
                config.controls.analog,    config.controls.axis, config.controls.invert, config.controls.asettings);
+    DC_TRACE("cannonball: input.init done\n");
 
     if (config.controls.haptic) 
         config.controls.haptic = forcefeedback::init(config.controls.max_force, config.controls.min_force, config.controls.force_duration);
         
     // Populate menus
+    DC_TRACE("cannonball: menu populate begin\n");
     menu = new Menu();
     menu->populate();
+    DC_TRACE("cannonball: main_loop begin state=%d\n", state);
     main_loop();  // Loop until we quit the app
 
     // Never Reached
     return 0;
 }
+
+#ifdef __DREAMCAST__
+struct dreamcast_main_args_t
+{
+    int argc;
+    char** argv;
+};
+
+static void* dreamcast_main_thread(void* param)
+{
+    dreamcast_main_args_t* args = static_cast<dreamcast_main_args_t*>(param);
+    return reinterpret_cast<void*>(static_cast<intptr_t>(cannonball_main(args->argc, args->argv)));
+}
+
+int main(int argc, char* argv[])
+{
+    dbglog(DBG_INFO, "cannonball: launcher start argc=%d\n", argc);
+    cont_btn_callback(0,
+        CONT_START | CONT_A | CONT_B | CONT_X | CONT_Y,
+        (cont_btn_callback_t)arch_exit);
+
+    dreamcast_main_args_t args = { argc, argv };
+    kthread_attr_t attr = {};
+    void* thread_result = NULL;
+
+    attr.stack_size = 2 * 1024 * 1024;
+    attr.prio = PRIO_DEFAULT;
+    attr.label = "cannonball";
+
+    kthread_t* thread = thd_create_ex(&attr, dreamcast_main_thread, &args);
+    if (!thread)
+    {
+        dbglog(DBG_ERROR, "cannonball: failed to create app thread\n");
+        return 1;
+    }
+
+    dbglog(DBG_INFO, "cannonball: app thread created stack=%u\n", (unsigned)attr.stack_size);
+    thd_join(thread, &thread_result);
+    dbglog(DBG_INFO, "cannonball: app thread joined result=%d\n",
+           static_cast<int>(reinterpret_cast<intptr_t>(thread_result)));
+    return static_cast<int>(reinterpret_cast<intptr_t>(thread_result));
+}
+#else
+int main(int argc, char* argv[])
+{
+    return cannonball_main(argc, argv);
+}
+#endif

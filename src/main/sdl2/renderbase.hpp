@@ -19,7 +19,7 @@ public:
     virtual bool start_frame()                = 0;
     virtual bool finalize_frame()             = 0;
     virtual void draw_frame(uint16_t* pixels) = 0;
-    void convert_palette(uint32_t adr, uint32_t r1, uint32_t g1, uint32_t b1);
+    virtual void convert_palette(uint32_t adr, uint32_t r1, uint32_t g1, uint32_t b1);
     void set_shadow_intensity(float f);
     virtual bool supports_window() { return true; }
     virtual bool supports_vsync() { return false; }

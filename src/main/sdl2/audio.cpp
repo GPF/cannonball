@@ -22,6 +22,13 @@
 #include "frontend/config.hpp" // fps
 #include "engine/audio/osoundint.hpp"
 
+#ifdef __DREAMCAST__
+#include <kos/dbglog.h>
+#define DC_AUDIO_TRACE(...) dbglog(DBG_INFO, __VA_ARGS__)
+#else
+#define DC_AUDIO_TRACE(...) do {} while (0)
+#endif
+
 #ifdef COMPILE_SOUND_CODE
 
 /* ----------------------------------------------------------------------------
@@ -106,6 +113,10 @@ void Audio::start_audio()
             std::cout << "Error opening audio device: " << SDL_GetError() << std::endl;
             return;
         }
+
+        DC_AUDIO_TRACE("cannonball: audio desired freq=%d fmt=0x%x channels=%d samples=%d obtained freq=%d fmt=0x%x channels=%d samples=%d\n",
+                       desired.freq, desired.format, desired.channels, desired.samples,
+                       obtained.freq, obtained.format, obtained.channels, obtained.samples);
 
         if (desired.samples != obtained.samples) 
         {

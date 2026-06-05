@@ -27,6 +27,7 @@ public:
     bool start_frame();
     bool finalize_frame();
     void draw_frame(uint16_t* pixels);
+    void convert_palette(uint32_t adr, uint32_t r1, uint32_t g1, uint32_t b1);
 
 private:
     // SDL2 window
@@ -37,6 +38,17 @@ private:
 
     // SDL2 texture
     SDL_Texture *texture;
+
+#ifdef __DREAMCAST__
+    uint16_t *screen_pixels_16_left;
+    uint16_t *screen_pixels_16_right;
+    SDL_Texture *texture_right;
+    SDL_Rect src_rect_right;
+    SDL_Rect dst_rect_right;
+    int dc_left_width;
+    int dc_right_width;
+    int dc_right_texture_width;
+#endif
 
     // SDL2 blitting rects for hw scaling 
     // ratio correction using SDL_RenderCopy()

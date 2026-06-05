@@ -13,7 +13,12 @@
 #pragma once
 
 #include "renderbase.hpp"
+#ifdef WITH_GLDC
+#include <GL/gl.h>
+#include <GL/glkos.h>
+#else
 #include <SDL_opengl.h>
+#endif
 
 class Render : public RenderBase
 {
@@ -35,8 +40,14 @@ private:
     const static int SCANLN = 1;
 
     GLuint textures[2];
+#ifndef WITH_GLDC
     GLuint dlist; // GL display list
+#endif
 
     SDL_GLContext glcontext;
     SDL_Window *window;
+
+#ifdef WITH_GLDC
+    void draw_gl_scene();
+#endif
 };

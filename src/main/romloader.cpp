@@ -11,7 +11,6 @@
 #include <iostream>
 #include <fstream>
 #include <cstddef>       // for std::size_t
-#include <boost/crc.hpp> // CRC Checking via Boost library.
 #include <unordered_map>
 
 #include "stdint.hpp"
@@ -32,6 +31,23 @@
 // Unordered Map to store contents of directory by CRC 32 value. Similar to Hashmap.
 static std::unordered_map<int, std::string> map;
 static bool map_created;
+
+namespace
+{
+    uint32_t crc32_bytes(const char* data, std::size_t length)
+    {
+        uint32_t crc = 0xFFFFFFFF;
+
+        for (std::size_t i = 0; i < length; i++)
+        {
+            crc ^= static_cast<uint8_t>(data[i]);
+            for (int bit = 0; bit < 8; bit++)
+                crc = (crc >> 1) ^ (0xEDB88320 & (0 - (crc & 1)));
+        }
+
+        return ~crc;
+    }
+}
 
 
 RomLoader::RomLoader()
@@ -86,14 +102,13 @@ int RomLoader::load_rom(const char* filename, const int offset, const int length
     src.read(buffer, length);
 
     // Check CRC on file
-    boost::crc_32_type result;
-    result.process_bytes(buffer, (size_t) src.gcount());
+    const uint32_t checksum = crc32_bytes(buffer, (size_t) src.gcount());
 
-    if (expected_crc != result.checksum())
+    if (expected_crc != checksum)
     {
         if (verbose) 
         std::cout << std::hex << 
-            filename << " has incorrect checksum.\nExpected: " << expected_crc << " Found: " << result.checksum() << std::endl;
+            filename << " has incorrect checksum.\nExpected: " << expected_crc << " Found: " << checksum << std::endl;
 
         return 1;
     }
@@ -143,11 +158,10 @@ int RomLoader::create_map()
         src.read(buffer, length);
 
         // Check CRC on file
-        boost::crc_32_type result;
-        result.process_bytes(buffer, (size_t)src.gcount());
+        const uint32_t checksum = crc32_bytes(buffer, (size_t)src.gcount());
 
         // Insert file into MAP between CRC and filename
-        map.insert({ result.checksum(), file });
+        map.insert({ checksum, file });
         delete[] buffer;
         src.close();
     }

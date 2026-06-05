@@ -22,6 +22,57 @@ Render::Render()
 
 }
 
+#ifdef WITH_GLDC
+void Render::draw_gl_scene()
+{
+    const bool enable_scanlines = scanlines &&
+        (video_mode != video_settings_t::MODE_WINDOW ||
+         dst_width != src_width ||
+         dst_height != src_height);
+
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+    glOrtho(0, scn_width, scn_height, 0, 0, 1);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glEnable(GL_TEXTURE_2D);
+
+        glBindTexture(GL_TEXTURE_2D, textures[SCREEN]);
+        glBegin(GL_QUADS);
+            glTexCoord2f(0, 1);
+            glVertex2f  (screen_xoff,             screen_yoff + dst_height);
+            glTexCoord2f(0, 0);
+            glVertex2f  (screen_xoff,             screen_yoff);
+            glTexCoord2f(1, 0);
+            glVertex2f  (screen_xoff + dst_width, screen_yoff);
+            glTexCoord2f(1, 1);
+            glVertex2f  (screen_xoff + dst_width, screen_yoff + dst_height);
+        glEnd();
+
+        if (enable_scanlines)
+        {
+            glEnable(GL_BLEND);
+                glColor4ub(255, 255, 255, ((scanlines - 1) << 8) / 100);
+                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+                glBindTexture(GL_TEXTURE_2D, textures[SCANLN]);
+                glBegin(GL_QUADS);
+                    glTexCoord2f(0, S16_HEIGHT);
+                    glVertex2f  (screen_xoff,             screen_yoff + dst_height);
+                    glTexCoord2f(0, 0);
+                    glVertex2f  (screen_xoff,             screen_yoff);
+                    glTexCoord2f(src_width, 0);
+                    glVertex2f  (screen_xoff + dst_width, screen_yoff);
+                    glTexCoord2f(src_width, S16_HEIGHT);
+                    glVertex2f  (screen_xoff + dst_width, screen_yoff + dst_height);
+                glEnd();
+            glDisable(GL_BLEND);
+        }
+
+    glDisable(GL_TEXTURE_2D);
+    glPopMatrix();
+}
+#endif
+
 bool Render::init(int src_width, int src_height,
                     int scale,
                     int video_mode,
@@ -99,6 +150,11 @@ bool Render::init(int src_width, int src_height,
     }
 
     SDL_ShowCursor(SDL_DISABLE);
+
+#ifdef WITH_GLDC
+    window = NULL;
+    glcontext = NULL;
+#else
     
     // scn_* values will be ignored if we pass any of the FULLSCREEN flags, as expected.
     // So these are here just for the windowed modes, and ignored otherwise.
@@ -113,6 +169,7 @@ bool Render::init(int src_width, int src_height,
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
 
     glcontext = SDL_GL_CreateContext(window);
+#endif
 
     if (!surface)
     {
@@ -153,11 +210,25 @@ bool Render::init(int src_width, int src_height,
     // Initalize Open GL
     // --------------------------------------------------------------------------------------------
 
+#ifdef WITH_GLDC
+    GLdcConfig gldc_config;
+    glKosInitConfig(&gldc_config);
+    gldc_config.autosort_enabled = GL_FALSE;
+    gldc_config.fsaa_enabled = GL_FALSE;
+    gldc_config.internal_palette_format = GL_RGBA4;
+    gldc_config.texture_twiddle = GL_FALSE;
+    glKosInitEx(&gldc_config);
+#endif
+
     // Disable dithering
+#ifndef WITH_GLDC
     glDisable(GL_DITHER);
+#endif
     // Disable anti-aliasing
     glDisable(GL_LINE_SMOOTH);
+#ifndef WITH_GLDC
     glDisable(GL_POINT_SMOOTH);
+#endif
     // Disable depth buffer
     glDisable(GL_DEPTH_TEST);
 
@@ -173,8 +244,13 @@ bool Render::init(int src_width, int src_height,
     // Screen Texture Setup
     const GLint param = config.video.filtering ? GL_LINEAR : GL_NEAREST;
     glBindTexture(GL_TEXTURE_2D, textures[SCREEN]);
+#ifdef WITH_GLDC
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+#else
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+#endif
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, param);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, param);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8,
@@ -196,6 +272,7 @@ bool Render::init(int src_width, int src_height,
                      SCANLINE_TEXTURE);
     }
 
+#ifndef WITH_GLDC
     // Initalize D-List
     dlist = glGenLists(1);
     glNewList(dlist, GL_COMPILE);
@@ -238,18 +315,25 @@ bool Render::init(int src_width, int src_height,
     glDisable(GL_TEXTURE_2D);
     glPopMatrix();
     glEndList();
+#endif
 
     return true;
 }
 
 void Render::disable()
 {
+#ifndef WITH_GLDC
     glDeleteLists(dlist, 1);
+#endif
     glDeleteTextures(scanlines ? 2 : 1, textures);
 
+#ifdef WITH_GLDC
+    glKosShutdown();
+#else
     // Deinit SDL2 GL context
     SDL_DestroyWindow(window);
     SDL_GL_DeleteContext(glcontext); 
+#endif
 }
 
 bool Render::start_frame()
@@ -280,10 +364,15 @@ void Render::draw_frame(uint16_t* pixels)
             GL_UNSIGNED_INT_8_8_8_8_REV,               // data type of pixel data
             screen_pixels);                            // pointer in image memory
 
+#ifdef WITH_GLDC
+    draw_gl_scene();
+    glKosSwapBuffers();
+#else
     glCallList(dlist);
     //glFinish();
 
     SDL_GL_SwapWindow(window);
+#endif
 }
 
 bool Render::supports_vsync()

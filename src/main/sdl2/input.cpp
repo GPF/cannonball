@@ -13,6 +13,13 @@
 #include <cstdlib> // abs
 #include "sdl2/input.hpp"
 
+#ifdef __DREAMCAST__
+#include <kos/dbglog.h>
+#define DC_INPUT_TRACE(...) dbglog(DBG_INFO, __VA_ARGS__)
+#else
+#define DC_INPUT_TRACE(...) do {} while (0)
+#endif
+
 Input input;
 
 Input::Input(void)
@@ -44,13 +51,27 @@ void Input::init(int pad_id, int* key_config, int* pad_config, int analog, int* 
 
 void Input::open_joy()
 {
+    if (stick != NULL || controller != NULL)
+    {
+        DC_INPUT_TRACE("cannonball: joystick already open\n");
+        return;
+    }
+
     gamepad = SDL_NumJoysticks() > pad_id;
     if (gamepad)
     {
         stick = SDL_JoystickOpen(pad_id);
+        const bool is_controller = SDL_IsGameController(pad_id);
+        DC_INPUT_TRACE("cannonball: joystick open id=%d name=%s axes=%d buttons=%d hats=%d controller=%d\n",
+                       pad_id,
+                       SDL_JoystickName(stick) ? SDL_JoystickName(stick) : "(null)",
+                       stick ? SDL_JoystickNumAxes(stick) : 0,
+                       stick ? SDL_JoystickNumButtons(stick) : 0,
+                       stick ? SDL_JoystickNumHats(stick) : 0,
+                       is_controller);
 
         // If this is a recognized Game Controller, let's pull some useful default information
-        if (SDL_IsGameController(pad_id))
+        if (is_controller)
         {
             controller = SDL_GameControllerOpen(pad_id);
 
@@ -70,6 +91,24 @@ void Input::open_joy()
             bind_button(SDL_CONTROLLER_BUTTON_DPAD_LEFT, 10);
             bind_button(SDL_CONTROLLER_BUTTON_DPAD_RIGHT, 11);
         }
+#ifdef __DREAMCAST__
+        else
+        {
+            // SDL's Dreamcast joystick backend maps:
+            // 0=C, 1=B, 2=A, 3=START, 4=Z, 5=Y, 6=X, 7=D. D-pad uses hat 0.
+            if (pad_config[0] == -1) pad_config[0] = 2; // A: accelerate
+            if (pad_config[1] == -1) pad_config[1] = 1; // B: brake
+            if (pad_config[2] == -1) pad_config[2] = 6; // X: gear 1
+            if (pad_config[3] == -1) pad_config[3] = 5; // Y: gear 2
+            if (pad_config[4] == -1) pad_config[4] = 3; // START
+            if (pad_config[5] == -1) pad_config[5] = 0; // C: coin
+            if (pad_config[6] == -1) pad_config[6] = 7; // D: menu
+            if (pad_config[7] == -1) pad_config[7] = 4; // Z: view
+            DC_INPUT_TRACE("cannonball: Dreamcast joystick fallback buttons acc=%d brake=%d gear1=%d gear2=%d start=%d coin=%d menu=%d view=%d\n",
+                           pad_config[0], pad_config[1], pad_config[2], pad_config[3],
+                           pad_config[4], pad_config[5], pad_config[6], pad_config[7]);
+        }
+#endif
 
         haptic = SDL_HapticOpen(pad_id);
         if (haptic)

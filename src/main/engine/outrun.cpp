@@ -31,6 +31,13 @@
 #include "engine/otraffic.hpp"
 #include "engine/outils.hpp"
 
+#ifdef __DREAMCAST__
+#include <kos/dbglog.h>
+#define DC_OUTRUN_TRACE(...) dbglog(DBG_INFO, __VA_ARGS__)
+#else
+#define DC_OUTRUN_TRACE(...) do {} while (0)
+#endif
+
 Outrun outrun;
 
 /*
@@ -66,9 +73,12 @@ Outrun::~Outrun()
 
 void Outrun::init()
 {
+    DC_OUTRUN_TRACE("cannonball: Outrun::init enter\n");
     freeze_timer = cannonball_mode == MODE_TTRIAL ? true : config.engine.freeze_timer;
     video.enabled = false;
+    DC_OUTRUN_TRACE("cannonball: Outrun::init select_course begin\n");
     select_course(config.engine.jap != 0, config.engine.prototype != 0);
+    DC_OUTRUN_TRACE("cannonball: Outrun::init clear_text_ram begin\n");
     video.clear_text_ram();
 
     tick_counter = 0;
@@ -87,21 +97,32 @@ void Outrun::init()
     else if (config.controls.rumble)
         outputs->set_mode(OOutputs::MODE_RUMBLE);
 
+    DC_OUTRUN_TRACE("cannonball: Outrun::init boot begin\n");
     boot();
+    DC_OUTRUN_TRACE("cannonball: Outrun::init boot done\n");
 }
 
 void Outrun::boot()
 {
+    DC_OUTRUN_TRACE("cannonball: Outrun::boot enter\n");
     game_state = config.engine.layout_debug ? GS_INIT_GAME : GS_INIT;
     // Initialize default hi-score entries
+    DC_OUTRUN_TRACE("cannonball: Outrun::boot init_def_scores begin\n");
     ohiscore.init_def_scores();
     // Load saved hi-score entries
+    DC_OUTRUN_TRACE("cannonball: Outrun::boot load_scores begin\n");
     config.load_scores(cannonball_mode == Outrun::MODE_ORIGINAL);        
+    DC_OUTRUN_TRACE("cannonball: Outrun::boot ostats.init begin\n");
     ostats.init(cannonball_mode == MODE_TTRIAL);
+    DC_OUTRUN_TRACE("cannonball: Outrun::boot init_jump_table begin\n");
     init_jump_table();
+    DC_OUTRUN_TRACE("cannonball: Outrun::boot oinitengine.init begin\n");
     oinitengine.init(cannonball_mode == MODE_TTRIAL ? ttrial.level : 0);
+    DC_OUTRUN_TRACE("cannonball: Outrun::boot osoundint.init begin\n");
     osoundint.init();
+    DC_OUTRUN_TRACE("cannonball: Outrun::boot reset_random_seed begin\n");
     outils::reset_random_seed(); // Ensure we match the genuine boot up of the original game each time
+    DC_OUTRUN_TRACE("cannonball: Outrun::boot done\n");
 }
 
 void Outrun::tick(bool tick_frame)
