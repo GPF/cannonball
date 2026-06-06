@@ -3,6 +3,11 @@
 #include "globals.hpp"
 #include "frontend/config.hpp"
 
+#ifdef __DREAMCAST__
+#include <kos/dbglog.h>
+#include <SDL.h>
+#endif
+
 /***************************************************************************
     Video Emulation: OutRun Sprite Rendering Hardware.
     Based on MAME source code.
@@ -171,6 +176,58 @@ void hwsprites::swap()
 
 #else
 
+#ifdef __DREAMCAST__
+
+#define draw_pixel_clipped_shadow()                                                                  \
+{                                                                                                     \
+    if (x >= x1 && x < x2 && pix != 0 && pix != 15)                                                   \
+    {                                                                                                 \
+        if (pix == 0xa)                                                                               \
+        {                                                                                             \
+            pPixel[x] &= 0xfff;                                                                       \
+            pPixel[x] += S16_PALETTE_ENTRIES;                                                         \
+        }                                                                                             \
+        else                                                                                          \
+        {                                                                                             \
+            pPixel[x] = (pix | color);                                                                \
+        }                                                                                             \
+    }                                                                                                 \
+}
+
+#define draw_pixel_clipped_noshadow()                                                                \
+{                                                                                                     \
+    if (x >= x1 && x < x2 && pix != 0 && pix != 15)                                                   \
+    {                                                                                                 \
+        pPixel[x] = (pix | color);                                                                    \
+    }                                                                                                 \
+}
+
+#define draw_pixel_full_shadow()                                                                     \
+{                                                                                                     \
+    if (x >= 0 && x < config.s16_width && pix != 0 && pix != 15)                                      \
+    {                                                                                                 \
+        if (pix == 0xa)                                                                               \
+        {                                                                                             \
+            pPixel[x] &= 0xfff;                                                                       \
+            pPixel[x] += S16_PALETTE_ENTRIES;                                                         \
+        }                                                                                             \
+        else                                                                                          \
+        {                                                                                             \
+            pPixel[x] = (pix | color);                                                                \
+        }                                                                                             \
+    }                                                                                                 \
+}
+
+#define draw_pixel_full_noshadow()                                                                   \
+{                                                                                                     \
+    if (x >= 0 && x < config.s16_width && pix != 0 && pix != 15)                                      \
+    {                                                                                                 \
+        pPixel[x] = (pix | color);                                                                    \
+    }                                                                                                 \
+}
+
+#else
+
 #define draw_pixel()                                                                                  \
 {                                                                                                     \
     if (x >= x1 && x < x2 && pix != 0 && pix != 15)                                                   \
@@ -188,10 +245,77 @@ void hwsprites::swap()
 }
 
 #endif
+#endif
+
+#ifdef __DREAMCAST__
+#define draw_pixels_forward(draw_pixel_func)                                                          \
+{                                                                                                     \
+    pix = (pixels >> 28) & 0xf; while (xacc < 0x200) { draw_pixel_func(); x += xdelta; xacc += hzoom; } xacc -= 0x200; \
+    pix = (pixels >> 24) & 0xf; while (xacc < 0x200) { draw_pixel_func(); x += xdelta; xacc += hzoom; } xacc -= 0x200; \
+    pix = (pixels >> 20) & 0xf; while (xacc < 0x200) { draw_pixel_func(); x += xdelta; xacc += hzoom; } xacc -= 0x200; \
+    pix = (pixels >> 16) & 0xf; while (xacc < 0x200) { draw_pixel_func(); x += xdelta; xacc += hzoom; } xacc -= 0x200; \
+    pix = (pixels >> 12) & 0xf; while (xacc < 0x200) { draw_pixel_func(); x += xdelta; xacc += hzoom; } xacc -= 0x200; \
+    pix = (pixels >>  8) & 0xf; while (xacc < 0x200) { draw_pixel_func(); x += xdelta; xacc += hzoom; } xacc -= 0x200; \
+    pix = (pixels >>  4) & 0xf; while (xacc < 0x200) { draw_pixel_func(); x += xdelta; xacc += hzoom; } xacc -= 0x200; \
+    pix = (pixels >>  0) & 0xf; while (xacc < 0x200) { draw_pixel_func(); x += xdelta; xacc += hzoom; } xacc -= 0x200; \
+}
+
+#define draw_pixels_reverse(draw_pixel_func)                                                          \
+{                                                                                                     \
+    pix = (pixels >>  0) & 0xf; while (xacc < 0x200) { draw_pixel_func(); x += xdelta; xacc += hzoom; } xacc -= 0x200; \
+    pix = (pixels >>  4) & 0xf; while (xacc < 0x200) { draw_pixel_func(); x += xdelta; xacc += hzoom; } xacc -= 0x200; \
+    pix = (pixels >>  8) & 0xf; while (xacc < 0x200) { draw_pixel_func(); x += xdelta; xacc += hzoom; } xacc -= 0x200; \
+    pix = (pixels >> 12) & 0xf; while (xacc < 0x200) { draw_pixel_func(); x += xdelta; xacc += hzoom; } xacc -= 0x200; \
+    pix = (pixels >> 16) & 0xf; while (xacc < 0x200) { draw_pixel_func(); x += xdelta; xacc += hzoom; } xacc -= 0x200; \
+    pix = (pixels >> 20) & 0xf; while (xacc < 0x200) { draw_pixel_func(); x += xdelta; xacc += hzoom; } xacc -= 0x200; \
+    pix = (pixels >> 24) & 0xf; while (xacc < 0x200) { draw_pixel_func(); x += xdelta; xacc += hzoom; } xacc -= 0x200; \
+    pix = (pixels >> 28) & 0xf; while (xacc < 0x200) { draw_pixel_func(); x += xdelta; xacc += hzoom; } xacc -= 0x200; \
+}
+
+#define draw_pixels_forward_1x(draw_pixel_func)                                                       \
+{                                                                                                     \
+    pix = (pixels >> 28) & 0xf; draw_pixel_func(); x += xdelta;                                       \
+    pix = (pixels >> 24) & 0xf; draw_pixel_func(); x += xdelta;                                       \
+    pix = (pixels >> 20) & 0xf; draw_pixel_func(); x += xdelta;                                       \
+    pix = (pixels >> 16) & 0xf; draw_pixel_func(); x += xdelta;                                       \
+    pix = (pixels >> 12) & 0xf; draw_pixel_func(); x += xdelta;                                       \
+    pix = (pixels >>  8) & 0xf; draw_pixel_func(); x += xdelta;                                       \
+    pix = (pixels >>  4) & 0xf; draw_pixel_func(); x += xdelta;                                       \
+    pix = (pixels >>  0) & 0xf; draw_pixel_func(); x += xdelta;                                       \
+}
+
+#define draw_pixels_reverse_1x(draw_pixel_func)                                                       \
+{                                                                                                     \
+    pix = (pixels >>  0) & 0xf; draw_pixel_func(); x += xdelta;                                       \
+    pix = (pixels >>  4) & 0xf; draw_pixel_func(); x += xdelta;                                       \
+    pix = (pixels >>  8) & 0xf; draw_pixel_func(); x += xdelta;                                       \
+    pix = (pixels >> 12) & 0xf; draw_pixel_func(); x += xdelta;                                       \
+    pix = (pixels >> 16) & 0xf; draw_pixel_func(); x += xdelta;                                       \
+    pix = (pixels >> 20) & 0xf; draw_pixel_func(); x += xdelta;                                       \
+    pix = (pixels >> 24) & 0xf; draw_pixel_func(); x += xdelta;                                       \
+    pix = (pixels >> 28) & 0xf; draw_pixel_func(); x += xdelta;                                       \
+}
+#endif
 
 void hwsprites::render(const uint8_t priority)
 {
     const uint32_t numbanks = SPRITES_LENGTH / 0x10000;
+
+#ifdef __DREAMCAST__
+    static uint32_t perf_last = SDL_GetTicks();
+    static int perf_frames = 0;
+    static uint32_t perf_sprites = 0;
+    static uint32_t perf_shadow_sprites = 0;
+    static uint32_t perf_rows = 0;
+    static uint32_t perf_rows_1x = 0;
+    static uint32_t perf_fullclip_sprites = 0;
+    uint32_t frame_sprites = 0;
+    uint32_t frame_shadow_sprites = 0;
+    uint32_t frame_rows = 0;
+    uint32_t frame_rows_1x = 0;
+    uint32_t frame_fullclip_sprites = 0;
+    const bool full_clip = (x1 == 0 && x2 == config.s16_width);
+#endif
 
     for (uint16_t data = 0; data < SPRITE_RAM_SIZE; data += 8) 
     {
@@ -212,6 +336,9 @@ void hwsprites::render(const uint8_t priority)
         int32_t pitch  = ((ramBuff[data+2] >> 1) | ((ramBuff[data+4] & 0x1000) << 3)) >> 8;
         int32_t xpos    =  ramBuff[data+6]; // moved from original structure to accomodate widescreen
         uint8_t shadow  = (ramBuff[data+3] >> 14) & 1;
+#if defined(DREAMCAST) && defined(DREAMCAST_SKIP_SPRITE_SHADOWS)
+        shadow = 0;
+#endif
         int32_t vzoom    = ramBuff[data+3] & 0x7ff;
         int32_t ydelta = ((ramBuff[data+4] & 0x8000) != 0) ? 1 : -1;
         int32_t flip   = (~ramBuff[data+4] >> 14) & 1;
@@ -256,6 +383,14 @@ void hwsprites::render(const uint8_t priority)
             vzoom >>= 1;
         }
 
+#ifdef __DREAMCAST__
+        frame_sprites++;
+        if (shadow)
+            frame_shadow_sprites++;
+        if (full_clip)
+            frame_fullclip_sprites++;
+#endif
+
         for (y = top; y != ytarget; y += ydelta)
         {
             // skip drawing if not within the cliprect
@@ -263,6 +398,11 @@ void hwsprites::render(const uint8_t priority)
             {
                 uint16_t* pPixel = &video.pixels[y * config.s16_width];
                 int32_t xacc = 0;
+#ifdef __DREAMCAST__
+                frame_rows++;
+                if (hzoom == 0x200)
+                    frame_rows_1x++;
+#endif
 
                 // non-flipped case
                 if (flip == 0)
@@ -270,6 +410,91 @@ void hwsprites::render(const uint8_t priority)
                     // start at the word before because we preincrement below
                     ramBuff[data+7] = (addr - 1);
 
+#ifdef __DREAMCAST__
+                    if (full_clip)
+                    {
+                        if (shadow)
+                        {
+                            uint16_t sprite_addr = ramBuff[data+7];
+                            for (x = xpos; (xdelta > 0 && x < config.s16_width) || (xdelta < 0 && x >= 0); )
+                            {
+                                uint32_t pixels = spritedata[++sprite_addr];
+                                if (hzoom == 0x200)
+                                {
+                                    draw_pixels_forward_1x(draw_pixel_full_shadow);
+                                }
+                                else
+                                {
+                                    draw_pixels_forward(draw_pixel_full_shadow);
+                                }
+
+                                if ((pixels & 0x000000f0) == 0x000000f0)
+                                    break;
+                            }
+                            ramBuff[data+7] = sprite_addr;
+                        }
+                        else
+                        {
+                            uint16_t sprite_addr = ramBuff[data+7];
+                            for (x = xpos; (xdelta > 0 && x < config.s16_width) || (xdelta < 0 && x >= 0); )
+                            {
+                                uint32_t pixels = spritedata[++sprite_addr];
+                                if (hzoom == 0x200)
+                                {
+                                    draw_pixels_forward_1x(draw_pixel_full_noshadow);
+                                }
+                                else
+                                {
+                                    draw_pixels_forward(draw_pixel_full_noshadow);
+                                }
+
+                                if ((pixels & 0x000000f0) == 0x000000f0)
+                                    break;
+                            }
+                            ramBuff[data+7] = sprite_addr;
+                        }
+                    }
+                    else if (shadow)
+                    {
+                        uint16_t sprite_addr = ramBuff[data+7];
+                        for (x = xpos; (xdelta > 0 && x < config.s16_width) || (xdelta < 0 && x >= 0); )
+                        {
+                            uint32_t pixels = spritedata[++sprite_addr];
+                            if (hzoom == 0x200)
+                            {
+                                draw_pixels_forward_1x(draw_pixel_clipped_shadow);
+                            }
+                            else
+                            {
+                                draw_pixels_forward(draw_pixel_clipped_shadow);
+                            }
+
+                            if ((pixels & 0x000000f0) == 0x000000f0)
+                                break;
+                        }
+                        ramBuff[data+7] = sprite_addr;
+                    }
+                    else
+                    {
+                        uint16_t sprite_addr = ramBuff[data+7];
+                        for (x = xpos; (xdelta > 0 && x < config.s16_width) || (xdelta < 0 && x >= 0); )
+                        {
+                            uint32_t pixels = spritedata[++sprite_addr];
+                            if (hzoom == 0x200)
+                            {
+                                draw_pixels_forward_1x(draw_pixel_clipped_noshadow);
+                            }
+                            else
+                            {
+                                draw_pixels_forward(draw_pixel_clipped_noshadow);
+                            }
+
+                            if ((pixels & 0x000000f0) == 0x000000f0)
+                                break;
+                        }
+                        ramBuff[data+7] = sprite_addr;
+                    }
+#else
                     for (x = xpos; (xdelta > 0 && x < config.s16_width) || (xdelta < 0 && x >= 0); )
                     {
                         uint32_t pixels = spritedata[++ramBuff[data+7]]; // Add to base sprite data the vzoom value
@@ -288,6 +513,7 @@ void hwsprites::render(const uint8_t priority)
                         if ((pixels & 0x000000f0) == 0x000000f0)
                             break;
                     }
+#endif
                 }
                 // flipped case
                 else
@@ -295,6 +521,91 @@ void hwsprites::render(const uint8_t priority)
                     // start at the word after because we predecrement below
                     ramBuff[data+7] = (addr + 1);
 
+#ifdef __DREAMCAST__
+                    if (full_clip)
+                    {
+                        if (shadow)
+                        {
+                            uint16_t sprite_addr = ramBuff[data+7];
+                            for (x = xpos; (xdelta > 0 && x < config.s16_width) || (xdelta < 0 && x >= 0); )
+                            {
+                                uint32_t pixels = spritedata[--sprite_addr];
+                                if (hzoom == 0x200)
+                                {
+                                    draw_pixels_reverse_1x(draw_pixel_full_shadow);
+                                }
+                                else
+                                {
+                                    draw_pixels_reverse(draw_pixel_full_shadow);
+                                }
+
+                                if ((pixels & 0x0f000000) == 0x0f000000)
+                                    break;
+                            }
+                            ramBuff[data+7] = sprite_addr;
+                        }
+                        else
+                        {
+                            uint16_t sprite_addr = ramBuff[data+7];
+                            for (x = xpos; (xdelta > 0 && x < config.s16_width) || (xdelta < 0 && x >= 0); )
+                            {
+                                uint32_t pixels = spritedata[--sprite_addr];
+                                if (hzoom == 0x200)
+                                {
+                                    draw_pixels_reverse_1x(draw_pixel_full_noshadow);
+                                }
+                                else
+                                {
+                                    draw_pixels_reverse(draw_pixel_full_noshadow);
+                                }
+
+                                if ((pixels & 0x0f000000) == 0x0f000000)
+                                    break;
+                            }
+                            ramBuff[data+7] = sprite_addr;
+                        }
+                    }
+                    else if (shadow)
+                    {
+                        uint16_t sprite_addr = ramBuff[data+7];
+                        for (x = xpos; (xdelta > 0 && x < config.s16_width) || (xdelta < 0 && x >= 0); )
+                        {
+                            uint32_t pixels = spritedata[--sprite_addr];
+                            if (hzoom == 0x200)
+                            {
+                                draw_pixels_reverse_1x(draw_pixel_clipped_shadow);
+                            }
+                            else
+                            {
+                                draw_pixels_reverse(draw_pixel_clipped_shadow);
+                            }
+
+                            if ((pixels & 0x0f000000) == 0x0f000000)
+                                break;
+                        }
+                        ramBuff[data+7] = sprite_addr;
+                    }
+                    else
+                    {
+                        uint16_t sprite_addr = ramBuff[data+7];
+                        for (x = xpos; (xdelta > 0 && x < config.s16_width) || (xdelta < 0 && x >= 0); )
+                        {
+                            uint32_t pixels = spritedata[--sprite_addr];
+                            if (hzoom == 0x200)
+                            {
+                                draw_pixels_reverse_1x(draw_pixel_clipped_noshadow);
+                            }
+                            else
+                            {
+                                draw_pixels_reverse(draw_pixel_clipped_noshadow);
+                            }
+
+                            if ((pixels & 0x0f000000) == 0x0f000000)
+                                break;
+                        }
+                        ramBuff[data+7] = sprite_addr;
+                    }
+#else
                     for (x = xpos; (xdelta > 0 && x < config.s16_width) || (xdelta < 0 && x >= 0); )
                     {
                         uint32_t pixels = spritedata[--ramBuff[data+7]];
@@ -313,6 +624,7 @@ void hwsprites::render(const uint8_t priority)
                         if ((pixels & 0x0f000000) == 0x0f000000)
                             break;
                     }
+#endif
                 }
             }
             // accumulate zoom factors; if we carry into the high bit, skip an extra row
@@ -321,4 +633,33 @@ void hwsprites::render(const uint8_t priority)
             yacc &= 0x1ff;
         }
     }
+
+#ifdef __DREAMCAST__
+    perf_sprites += frame_sprites;
+    perf_shadow_sprites += frame_shadow_sprites;
+    perf_rows += frame_rows;
+    perf_rows_1x += frame_rows_1x;
+    perf_fullclip_sprites += frame_fullclip_sprites;
+    perf_frames++;
+
+    const uint32_t perf_now = SDL_GetTicks();
+    if (perf_now - perf_last >= 1000)
+    {
+        dbglog(DBG_INFO,
+               "cannonball: spriteperf fps=%d sprites=%lu shadow=%lu fullclip=%lu rows=%lu rows_1x=%lu\n",
+               perf_frames,
+               (unsigned long)(perf_sprites / perf_frames),
+               (unsigned long)(perf_shadow_sprites / perf_frames),
+               (unsigned long)(perf_fullclip_sprites / perf_frames),
+               (unsigned long)(perf_rows / perf_frames),
+               (unsigned long)(perf_rows_1x / perf_frames));
+        perf_last = perf_now;
+        perf_frames = 0;
+        perf_sprites = 0;
+        perf_shadow_sprites = 0;
+        perf_rows = 0;
+        perf_rows_1x = 0;
+        perf_fullclip_sprites = 0;
+    }
+#endif
 }

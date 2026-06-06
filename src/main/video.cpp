@@ -16,6 +16,11 @@
 #include "frontend/config.hpp"
 #include "engine/oroad.hpp"
 
+#ifdef __DREAMCAST__
+#include <kos/dbglog.h>
+#include <SDL.h>
+#endif
+
 #ifdef WITH_OPENGL
 #include "sdl2/rendergl.hpp"
 #elif WITH_OPENGLES
@@ -25,6 +30,12 @@
 #endif
 
 Video video;
+
+#ifdef __DREAMCAST__
+#define DC_VIDEO_TRACE(...) dbglog(DBG_INFO, __VA_ARGS__)
+#else
+#define DC_VIDEO_TRACE(...) do {} while (0)
+#endif
 
 Video::Video(void)
 {
@@ -155,30 +166,113 @@ void Video::set_shadow_intensity(float f)
 
 void Video::prepare_frame()
 {
+#ifdef __DREAMCAST__
+    static uint32_t perf_last = SDL_GetTicks();
+    static int perf_frames = 0;
+    static uint32_t perf_start = 0;
+    static uint32_t perf_tile_update = 0;
+    static uint32_t perf_road_bg = 0;
+    static uint32_t perf_tile_bg = 0;
+    static uint32_t perf_tile_fg = 0;
+    static uint32_t perf_road_fg = 0;
+    static uint32_t perf_sprites = 0;
+    static uint32_t perf_text = 0;
+    static uint32_t perf_black = 0;
+    static uint32_t perf_frame = 0;
+    uint32_t perf_frame_start = SDL_GetTicks();
+#endif
+
     // Renderer Specific Frame Setup
     if (!renderer->start_frame())
         return;
 
     if (!enabled)
     {
+#ifdef __DREAMCAST__
+        perf_start = SDL_GetTicks();
+#endif
         // Fill with black pixels
         for (int i = 0; i < config.s16_width * config.s16_height; i++)
             pixels[i] = 0;
+#ifdef __DREAMCAST__
+        perf_black += SDL_GetTicks() - perf_start;
+#endif
     }
     else
     {
         // OutRun Hardware Video Emulation
+#ifdef __DREAMCAST__
+        perf_start = SDL_GetTicks();
+#endif
         tile_layer->update_tile_values();
+#ifdef __DREAMCAST__
+        perf_tile_update += SDL_GetTicks() - perf_start;
+        perf_start = SDL_GetTicks();
+#endif
 
         (hwroad.*hwroad.render_background)(pixels);
+#ifdef __DREAMCAST__
+        perf_road_bg += SDL_GetTicks() - perf_start;
+        perf_start = SDL_GetTicks();
+#endif
         tile_layer->render_tile_layer(pixels, 1, 0);      // background layer
+#ifdef __DREAMCAST__
+        perf_tile_bg += SDL_GetTicks() - perf_start;
+        perf_start = SDL_GetTicks();
+#endif
         tile_layer->render_tile_layer(pixels, 0, 0);      // foreground layer
+#ifdef __DREAMCAST__
+        perf_tile_fg += SDL_GetTicks() - perf_start;
+        perf_start = SDL_GetTicks();
+#endif
 
         if (!config.engine.fix_bugs || oroad.horizon_base != ORoad::HORIZON_OFF)
             (hwroad.*hwroad.render_foreground)(pixels);
+#ifdef __DREAMCAST__
+        perf_road_fg += SDL_GetTicks() - perf_start;
+        perf_start = SDL_GetTicks();
+#endif
         sprite_layer->render(8);
+#ifdef __DREAMCAST__
+        perf_sprites += SDL_GetTicks() - perf_start;
+        perf_start = SDL_GetTicks();
+#endif
         tile_layer->render_text_layer(pixels, 1);
+#ifdef __DREAMCAST__
+        perf_text += SDL_GetTicks() - perf_start;
+#endif
      }
+
+#ifdef __DREAMCAST__
+    perf_frame += SDL_GetTicks() - perf_frame_start;
+    perf_frames++;
+    const uint32_t perf_now = SDL_GetTicks();
+    if (perf_now - perf_last >= 1000)
+    {
+        DC_VIDEO_TRACE("cannonball: videoperf fps=%d total=%lu tile_update=%lu road_bg=%lu tile_bg=%lu tile_fg=%lu road_fg=%lu sprites=%lu text=%lu black=%lu\n",
+                       perf_frames,
+                       (unsigned long)(perf_frame / perf_frames),
+                       (unsigned long)(perf_tile_update / perf_frames),
+                       (unsigned long)(perf_road_bg / perf_frames),
+                       (unsigned long)(perf_tile_bg / perf_frames),
+                       (unsigned long)(perf_tile_fg / perf_frames),
+                       (unsigned long)(perf_road_fg / perf_frames),
+                       (unsigned long)(perf_sprites / perf_frames),
+                       (unsigned long)(perf_text / perf_frames),
+                       (unsigned long)(perf_black / perf_frames));
+        perf_last = perf_now;
+        perf_frames = 0;
+        perf_tile_update = 0;
+        perf_road_bg = 0;
+        perf_tile_bg = 0;
+        perf_tile_fg = 0;
+        perf_road_fg = 0;
+        perf_sprites = 0;
+        perf_text = 0;
+        perf_black = 0;
+        perf_frame = 0;
+    }
+#endif
 }
 
 void Video::render_frame()

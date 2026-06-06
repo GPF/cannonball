@@ -272,8 +272,6 @@ static void main_loop()
 #ifdef __DREAMCAST__
     uint32_t perf_last = SDL_GetTicks();
     int perf_frames = 0;
-    int perf_skipped_video = 0;
-    int dc_video_phase = 0;
     uint32_t perf_tick = 0;
     uint32_t perf_prepare = 0;
     uint32_t perf_render = 0;
@@ -298,26 +296,16 @@ static void main_loop()
 
         // Draw SDL Video
 #ifdef __DREAMCAST__
-        bool dc_skipped_video_this_frame = false;
-        const bool dc_render_video = state != STATE_GAME || (dc_video_phase++ % 3) == 0;
-        if (dc_render_video)
-        {
-            perf_start = SDL_GetTicks();
+        perf_start = SDL_GetTicks();
 #endif
-            video.prepare_frame();
+        video.prepare_frame();
 #ifdef __DREAMCAST__
-            perf_prepare += SDL_GetTicks() - perf_start;
-            perf_start = SDL_GetTicks();
+        perf_prepare += SDL_GetTicks() - perf_start;
+        perf_start = SDL_GetTicks();
 #endif
-            video.render_frame();
+        video.render_frame();
 #ifdef __DREAMCAST__
-            perf_render += SDL_GetTicks() - perf_start;
-        }
-        else
-        {
-            perf_skipped_video++;
-            dc_skipped_video_this_frame = true;
-        }
+        perf_render += SDL_GetTicks() - perf_start;
 #endif
 
         // Fill SDL Audio Buffer For Callback
@@ -337,12 +325,7 @@ static void main_loop()
             t = frame_time.get_ticks();
             
             if (t < deltatime)
-            {
-#ifdef __DREAMCAST__
-                if (!dc_skipped_video_this_frame)
-#endif
                 SDL_Delay((Uint32)(deltatime - t));
-            }
 
             deltatime -= deltaintegral;
         }
@@ -353,21 +336,17 @@ static void main_loop()
         const uint32_t perf_now = SDL_GetTicks();
         if (perf_now - perf_last >= 1000)
         {
-            const int perf_rendered = perf_frames - perf_skipped_video;
-            DC_TRACE("cannonball: perf fps=%d rendered=%d skipped=%d avg_ms total=%lu tick=%lu prep=%lu render=%lu audio=%lu state=%d target_fps=%d\n",
+            DC_TRACE("cannonball: perf fps=%d avg_ms total=%lu tick=%lu prep=%lu render=%lu audio=%lu state=%d target_fps=%d\n",
                      perf_frames,
-                     perf_rendered,
-                     perf_skipped_video,
                      (unsigned long)(perf_total / perf_frames),
                      (unsigned long)(perf_tick / perf_frames),
-                     (unsigned long)(perf_rendered > 0 ? perf_prepare / perf_rendered : 0),
-                     (unsigned long)(perf_rendered > 0 ? perf_render / perf_rendered : 0),
+                     (unsigned long)(perf_prepare / perf_frames),
+                     (unsigned long)(perf_render / perf_frames),
                      (unsigned long)(perf_audio / perf_frames),
                      state,
                      config.fps);
             perf_last = perf_now;
             perf_frames = 0;
-            perf_skipped_video = 0;
             perf_tick = 0;
             perf_prepare = 0;
             perf_render = 0;

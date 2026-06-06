@@ -155,10 +155,10 @@ bool Render::init(int src_width, int src_height,
 
 #ifdef __DREAMCAST__
     const int bpp = 16;
-    const uint32_t rmask = 0x7C00;
-    const uint32_t gmask = 0x03E0;
+    const uint32_t rmask = 0xF800;
+    const uint32_t gmask = 0x07E0;
     const uint32_t bmask = 0x001F;
-    const uint32_t amask = 0x8000;
+    const uint32_t amask = 0x0000;
 #else
     const int bpp = 32;
     const uint32_t rmask = 0;
@@ -245,7 +245,7 @@ bool Render::init(int src_width, int src_height,
 
     texture = SDL_CreateTexture(renderer,
 #ifdef __DREAMCAST__
-                               SDL_PIXELFORMAT_ARGB1555,
+                               SDL_PIXELFORMAT_RGB565,
 #else
                                SDL_PIXELFORMAT_ARGB8888,
 #endif
@@ -286,7 +286,7 @@ bool Render::init(int src_width, int src_height,
     if (dc_right_width > 0)
     {
         texture_right = SDL_CreateTexture(renderer,
-                                          SDL_PIXELFORMAT_ARGB1555,
+                                          SDL_PIXELFORMAT_RGB565,
                                           SDL_TEXTUREACCESS_STREAMING,
                                           dc_right_texture_width, texture_height);
         if (!texture_right)
@@ -445,7 +445,7 @@ void Render::draw_frame(uint16_t* pixels)
     uint16_t* left = screen_pixels_16_left;
     uint16_t* right = screen_pixels_16_right;
 
-    // Lookup real ARGB1555 value from rgb array for the GLdc texture upload.
+    // Lookup real RGB565 value from rgb array for the GLdc texture upload.
     for (int y = 0; y < src_height; y++)
     {
         for (int x = 0; x < dc_left_width; x++)
@@ -480,12 +480,12 @@ void Render::convert_palette(uint32_t adr, uint32_t r1, uint32_t g1, uint32_t b1
 #ifdef __DREAMCAST__
     adr >>= 1;
 
-    rgb[adr] = 0x8000 | ((r1 & 0x1F) << 10) | ((g1 & 0x1F) << 5) | (b1 & 0x1F);
+    rgb[adr] = ((r1 & 0x1F) << 11) | ((g1 & 0x3F) << 5) | (b1 & 0x1F);
 
     const uint32_t r = ((r1 * shadow_multi) / 31) >> 3;
     const uint32_t g = ((g1 * shadow_multi) / 31) >> 3;
     const uint32_t b = ((b1 * shadow_multi) / 31) >> 3;
-    rgb[adr + S16_PALETTE_ENTRIES] = 0x8000 | ((r & 0x1F) << 10) | ((g & 0x1F) << 5) | (b & 0x1F);
+    rgb[adr + S16_PALETTE_ENTRIES] = ((r & 0x1F) << 11) | ((g & 0x3F) << 5) | (b & 0x1F);
 #else
     RenderBase::convert_palette(adr, r1, g1, b1);
 #endif

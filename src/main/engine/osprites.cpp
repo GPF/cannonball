@@ -384,6 +384,10 @@ void OSprites::do_spr_order_shadows(oentry* input)
     // test_shadow: 
     if (!(input->control & SHADOW)) return;
 
+#if defined(DREAMCAST) && defined(DREAMCAST_SKIP_SPRITE_SHADOWS)
+    return;
+#endif
+
     // LayOut specific fix to avoid memory crash on over populated scenery segments
     if (spr_cnt_main + spr_cnt_shadow >= JUMP_ENTRIES_TOTAL)
         return;

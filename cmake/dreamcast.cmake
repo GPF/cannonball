@@ -11,7 +11,12 @@ set(USE_BOOST 0)
 # The Dreamcast SDL2 port provides the video backend; do not enable CannonBall's
 # standalone OpenGL renderer.
 add_definitions(-DDREAMCAST)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
+
+option(DREAMCAST_SKIP_SPRITE_SHADOWS "Skip generated sprite shadow entries on Dreamcast" OFF)
+if(DREAMCAST_SKIP_SPRITE_SHADOWS)
+    add_definitions(-DDREAMCAST_SKIP_SPRITE_SHADOWS)
+endif()
 
 # Platform Specific Libraries
 set(platform_link_libs
