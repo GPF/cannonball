@@ -15,7 +15,7 @@
 
 #ifdef __DREAMCAST__
 #include <kos/dbglog.h>
-#define DC_INPUT_TRACE(...) dbglog(DBG_INFO, __VA_ARGS__)
+#define DC_INPUT_TRACE(...) do {} while (0)
 #else
 #define DC_INPUT_TRACE(...) do {} while (0)
 #endif

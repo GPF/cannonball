@@ -40,14 +40,7 @@ private:
     SDL_Texture *texture;
 
 #ifdef __DREAMCAST__
-    uint16_t *screen_pixels_16_left;
-    uint16_t *screen_pixels_16_right;
-    SDL_Texture *texture_right;
-    SDL_Rect src_rect_right;
-    SDL_Rect dst_rect_right;
-    int dc_left_width;
-    int dc_right_width;
-    int dc_right_texture_width;
+    SDL_Surface *window_surface;
 #endif
 
     // SDL2 blitting rects for hw scaling 

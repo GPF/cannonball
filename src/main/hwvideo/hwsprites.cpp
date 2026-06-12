@@ -6,6 +6,8 @@
 #ifdef __DREAMCAST__
 #include <kos/dbglog.h>
 #include <SDL.h>
+#include <cstring>
+#define DC_SPRITE_PERF_INTERVAL_MS 30000
 #endif
 
 /***************************************************************************
@@ -295,6 +297,119 @@ void hwsprites::swap()
     pix = (pixels >> 24) & 0xf; draw_pixel_func(); x += xdelta;                                       \
     pix = (pixels >> 28) & 0xf; draw_pixel_func(); x += xdelta;                                       \
 }
+
+#ifdef DREAMCAST_FAST_SPRITES
+#define draw_scaled_full_noshadow(pix_expr)                                                           \
+{                                                                                                     \
+    pix = (pix_expr) & 0xf;                                                                           \
+    if (pix != 0 && pix != 15)                                                                        \
+    {                                                                                                 \
+        const uint16_t dc_pixel = (uint16_t)(pix | color);                                            \
+        while (xacc < 0x200)                                                                          \
+        {                                                                                             \
+            if (x >= 0 && x < dc_screen_width)                                                        \
+                pPixel[x] = dc_pixel;                                                                 \
+            x += xdelta;                                                                              \
+            xacc += hzoom;                                                                            \
+        }                                                                                             \
+    }                                                                                                 \
+    else                                                                                              \
+    {                                                                                                 \
+        while (xacc < 0x200)                                                                          \
+        {                                                                                             \
+            x += xdelta;                                                                              \
+            xacc += hzoom;                                                                            \
+        }                                                                                             \
+    }                                                                                                 \
+    xacc -= 0x200;                                                                                    \
+}
+
+#define draw_pixels_forward_full_noshadow_fast()                                                      \
+{                                                                                                     \
+    draw_scaled_full_noshadow(pixels >> 28);                                                          \
+    draw_scaled_full_noshadow(pixels >> 24);                                                          \
+    draw_scaled_full_noshadow(pixels >> 20);                                                          \
+    draw_scaled_full_noshadow(pixels >> 16);                                                          \
+    draw_scaled_full_noshadow(pixels >> 12);                                                          \
+    draw_scaled_full_noshadow(pixels >>  8);                                                          \
+    draw_scaled_full_noshadow(pixels >>  4);                                                          \
+    draw_scaled_full_noshadow(pixels >>  0);                                                          \
+}
+
+#define draw_pixels_reverse_full_noshadow_fast()                                                      \
+{                                                                                                     \
+    draw_scaled_full_noshadow(pixels >>  0);                                                          \
+    draw_scaled_full_noshadow(pixels >>  4);                                                          \
+    draw_scaled_full_noshadow(pixels >>  8);                                                          \
+    draw_scaled_full_noshadow(pixels >> 12);                                                          \
+    draw_scaled_full_noshadow(pixels >> 16);                                                          \
+    draw_scaled_full_noshadow(pixels >> 20);                                                          \
+    draw_scaled_full_noshadow(pixels >> 24);                                                          \
+    draw_scaled_full_noshadow(pixels >> 28);                                                          \
+}
+
+#define draw_scaled_full_shadow(pix_expr)                                                             \
+{                                                                                                     \
+    pix = (pix_expr) & 0xf;                                                                           \
+    if (pix == 0xa)                                                                                   \
+    {                                                                                                 \
+        while (xacc < 0x200)                                                                          \
+        {                                                                                             \
+            if (x >= 0 && x < dc_screen_width)                                                        \
+            {                                                                                         \
+                pPixel[x] &= 0xfff;                                                                   \
+                pPixel[x] += S16_PALETTE_ENTRIES;                                                     \
+            }                                                                                         \
+            x += xdelta;                                                                              \
+            xacc += hzoom;                                                                            \
+        }                                                                                             \
+    }                                                                                                 \
+    else if (pix != 0 && pix != 15)                                                                   \
+    {                                                                                                 \
+        const uint16_t dc_pixel = (uint16_t)(pix | color);                                            \
+        while (xacc < 0x200)                                                                          \
+        {                                                                                             \
+            if (x >= 0 && x < dc_screen_width)                                                        \
+                pPixel[x] = dc_pixel;                                                                 \
+            x += xdelta;                                                                              \
+            xacc += hzoom;                                                                            \
+        }                                                                                             \
+    }                                                                                                 \
+    else                                                                                              \
+    {                                                                                                 \
+        while (xacc < 0x200)                                                                          \
+        {                                                                                             \
+            x += xdelta;                                                                              \
+            xacc += hzoom;                                                                            \
+        }                                                                                             \
+    }                                                                                                 \
+    xacc -= 0x200;                                                                                    \
+}
+
+#define draw_pixels_forward_full_shadow_fast()                                                        \
+{                                                                                                     \
+    draw_scaled_full_shadow(pixels >> 28);                                                            \
+    draw_scaled_full_shadow(pixels >> 24);                                                            \
+    draw_scaled_full_shadow(pixels >> 20);                                                            \
+    draw_scaled_full_shadow(pixels >> 16);                                                            \
+    draw_scaled_full_shadow(pixels >> 12);                                                            \
+    draw_scaled_full_shadow(pixels >>  8);                                                            \
+    draw_scaled_full_shadow(pixels >>  4);                                                            \
+    draw_scaled_full_shadow(pixels >>  0);                                                            \
+}
+
+#define draw_pixels_reverse_full_shadow_fast()                                                        \
+{                                                                                                     \
+    draw_scaled_full_shadow(pixels >>  0);                                                            \
+    draw_scaled_full_shadow(pixels >>  4);                                                            \
+    draw_scaled_full_shadow(pixels >>  8);                                                            \
+    draw_scaled_full_shadow(pixels >> 12);                                                            \
+    draw_scaled_full_shadow(pixels >> 16);                                                            \
+    draw_scaled_full_shadow(pixels >> 20);                                                            \
+    draw_scaled_full_shadow(pixels >> 24);                                                            \
+    draw_scaled_full_shadow(pixels >> 28);                                                            \
+}
+#endif
 #endif
 
 void hwsprites::render(const uint8_t priority)
@@ -315,6 +430,13 @@ void hwsprites::render(const uint8_t priority)
     uint32_t frame_rows_1x = 0;
     uint32_t frame_fullclip_sprites = 0;
     const bool full_clip = (x1 == 0 && x2 == config.s16_width);
+#ifdef DREAMCAST_FAST_SPRITES
+    const int32_t dc_screen_width = config.s16_width;
+#endif
+#ifdef DREAMCAST_FAST_SPRITES_VALIDATE
+    static uint16_t dc_validate_row[1024];
+    static int dc_validate_mismatch_budget = 32;
+#endif
 #endif
 
     for (uint16_t data = 0; data < SPRITE_RAM_SIZE; data += 8) 
@@ -425,7 +547,11 @@ void hwsprites::render(const uint8_t priority)
                                 }
                                 else
                                 {
+#ifdef DREAMCAST_FAST_SPRITES
+                                    draw_pixels_forward_full_shadow_fast();
+#else
                                     draw_pixels_forward(draw_pixel_full_shadow);
+#endif
                                 }
 
                                 if ((pixels & 0x000000f0) == 0x000000f0)
@@ -445,7 +571,68 @@ void hwsprites::render(const uint8_t priority)
                                 }
                                 else
                                 {
+#ifdef DREAMCAST_FAST_SPRITES_VALIDATE
+                                    if (dc_screen_width <= 1024)
+                                    {
+                                        uint16_t* dc_real_row = pPixel;
+                                        const int32_t dc_start_x = x;
+                                        const int32_t dc_start_xacc = xacc;
+                                        const int32_t dc_start_pix = pix;
+
+                                        std::memcpy(dc_validate_row, dc_real_row,
+                                                    (size_t)dc_screen_width * sizeof(uint16_t));
+                                        pPixel = dc_validate_row;
+                                        draw_pixels_forward(draw_pixel_full_noshadow);
+                                        const int32_t dc_original_x = x;
+                                        const int32_t dc_original_xacc = xacc;
+
+                                        pPixel = dc_real_row;
+                                        x = dc_start_x;
+                                        xacc = dc_start_xacc;
+                                        pix = dc_start_pix;
+                                        draw_pixels_forward_full_noshadow_fast();
+
+                                        if (dc_validate_mismatch_budget > 0)
+                                        {
+                                            int32_t dc_mismatch = -1;
+                                            for (int32_t dc_i = 0; dc_i < dc_screen_width; dc_i++)
+                                            {
+                                                if (dc_validate_row[dc_i] != dc_real_row[dc_i])
+                                                {
+                                                    dc_mismatch = dc_i;
+                                                    break;
+                                                }
+                                            }
+                                            if (dc_mismatch >= 0 || x != dc_original_x || xacc != dc_original_xacc)
+                                            {
+                                                dbglog(DBG_INFO,
+                                                       "cannonball: sprite fast mismatch dir=fwd data=%u y=%ld x0=%ld xorig=%ld xfast=%ld xaccorig=%ld xaccfast=%ld xdelta=%ld hzoom=%ld pixword=%08lx mismatch=%ld orig=%04x fast=%04x\n",
+                                                       data,
+                                                       (long)y,
+                                                       (long)dc_start_x,
+                                                       (long)dc_original_x,
+                                                       (long)x,
+                                                       (long)dc_original_xacc,
+                                                       (long)xacc,
+                                                       (long)xdelta,
+                                                       (long)hzoom,
+                                                       (unsigned long)pixels,
+                                                       (long)dc_mismatch,
+                                                       dc_mismatch >= 0 ? dc_validate_row[dc_mismatch] : 0,
+                                                       dc_mismatch >= 0 ? dc_real_row[dc_mismatch] : 0);
+                                                dc_validate_mismatch_budget--;
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        draw_pixels_forward(draw_pixel_full_noshadow);
+                                    }
+#elif defined(DREAMCAST_FAST_SPRITES)
+                                    draw_pixels_forward_full_noshadow_fast();
+#else
                                     draw_pixels_forward(draw_pixel_full_noshadow);
+#endif
                                 }
 
                                 if ((pixels & 0x000000f0) == 0x000000f0)
@@ -536,7 +723,11 @@ void hwsprites::render(const uint8_t priority)
                                 }
                                 else
                                 {
+#ifdef DREAMCAST_FAST_SPRITES
+                                    draw_pixels_reverse_full_shadow_fast();
+#else
                                     draw_pixels_reverse(draw_pixel_full_shadow);
+#endif
                                 }
 
                                 if ((pixels & 0x0f000000) == 0x0f000000)
@@ -556,7 +747,68 @@ void hwsprites::render(const uint8_t priority)
                                 }
                                 else
                                 {
+#ifdef DREAMCAST_FAST_SPRITES_VALIDATE
+                                    if (dc_screen_width <= 1024)
+                                    {
+                                        uint16_t* dc_real_row = pPixel;
+                                        const int32_t dc_start_x = x;
+                                        const int32_t dc_start_xacc = xacc;
+                                        const int32_t dc_start_pix = pix;
+
+                                        std::memcpy(dc_validate_row, dc_real_row,
+                                                    (size_t)dc_screen_width * sizeof(uint16_t));
+                                        pPixel = dc_validate_row;
+                                        draw_pixels_reverse(draw_pixel_full_noshadow);
+                                        const int32_t dc_original_x = x;
+                                        const int32_t dc_original_xacc = xacc;
+
+                                        pPixel = dc_real_row;
+                                        x = dc_start_x;
+                                        xacc = dc_start_xacc;
+                                        pix = dc_start_pix;
+                                        draw_pixels_reverse_full_noshadow_fast();
+
+                                        if (dc_validate_mismatch_budget > 0)
+                                        {
+                                            int32_t dc_mismatch = -1;
+                                            for (int32_t dc_i = 0; dc_i < dc_screen_width; dc_i++)
+                                            {
+                                                if (dc_validate_row[dc_i] != dc_real_row[dc_i])
+                                                {
+                                                    dc_mismatch = dc_i;
+                                                    break;
+                                                }
+                                            }
+                                            if (dc_mismatch >= 0 || x != dc_original_x || xacc != dc_original_xacc)
+                                            {
+                                                dbglog(DBG_INFO,
+                                                       "cannonball: sprite fast mismatch dir=rev data=%u y=%ld x0=%ld xorig=%ld xfast=%ld xaccorig=%ld xaccfast=%ld xdelta=%ld hzoom=%ld pixword=%08lx mismatch=%ld orig=%04x fast=%04x\n",
+                                                       data,
+                                                       (long)y,
+                                                       (long)dc_start_x,
+                                                       (long)dc_original_x,
+                                                       (long)x,
+                                                       (long)dc_original_xacc,
+                                                       (long)xacc,
+                                                       (long)xdelta,
+                                                       (long)hzoom,
+                                                       (unsigned long)pixels,
+                                                       (long)dc_mismatch,
+                                                       dc_mismatch >= 0 ? dc_validate_row[dc_mismatch] : 0,
+                                                       dc_mismatch >= 0 ? dc_real_row[dc_mismatch] : 0);
+                                                dc_validate_mismatch_budget--;
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        draw_pixels_reverse(draw_pixel_full_noshadow);
+                                    }
+#elif defined(DREAMCAST_FAST_SPRITES)
+                                    draw_pixels_reverse_full_noshadow_fast();
+#else
                                     draw_pixels_reverse(draw_pixel_full_noshadow);
+#endif
                                 }
 
                                 if ((pixels & 0x0f000000) == 0x0f000000)
@@ -643,11 +895,13 @@ void hwsprites::render(const uint8_t priority)
     perf_frames++;
 
     const uint32_t perf_now = SDL_GetTicks();
-    if (perf_now - perf_last >= 1000)
+    if (perf_now - perf_last >= DC_SPRITE_PERF_INTERVAL_MS)
     {
+        const uint32_t perf_elapsed = perf_now - perf_last;
+        const uint32_t perf_fps = (perf_frames * 1000) / perf_elapsed;
         dbglog(DBG_INFO,
-               "cannonball: spriteperf fps=%d sprites=%lu shadow=%lu fullclip=%lu rows=%lu rows_1x=%lu\n",
-               perf_frames,
+               "cannonball: spriteperf fps=%lu sprites=%lu shadow=%lu fullclip=%lu rows=%lu rows_1x=%lu\n",
+               perf_fps,
                (unsigned long)(perf_sprites / perf_frames),
                (unsigned long)(perf_shadow_sprites / perf_frames),
                (unsigned long)(perf_fullclip_sprites / perf_frames),

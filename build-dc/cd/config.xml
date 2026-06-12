@@ -52,7 +52,7 @@
     <fps>0</fps>
     
     <!-- Enable FPS Counter -->
-    <fps_counter>0</fps_counter>
+    <fps_counter>1</fps_counter>
     
     <!-- Enhanced Widescreen Mode -->
     <widescreen>0</widescreen>
@@ -226,7 +226,7 @@
         </wheel>
         
         <!-- Force Feedback / Haptic Support (For Gamepads, use the simple rumble support instead -->
-        <haptic enabled="0">
+        <haptic enabled="1">
             <!-- Make both of the below values negative, 
                  if force feedback is in the wrong direction -->
             <!-- Maximum Force To Apply (0 to 10000) -->

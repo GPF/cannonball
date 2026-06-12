@@ -290,8 +290,8 @@ void Config::load()
     sound.preview     = dc_xml_int(dc_xml, "sound.preview", 1);
     sound.fix_samples = dc_xml_int(dc_xml, "sound.fix_samples", 1);
     sound.music_timer = dc_xml_int(dc_xml, "sound.music_timer", 0);
-    if (sound.rate > 8000)
-        sound.rate = 8000;
+    if (sound.rate > 11025)
+        sound.rate = 11025;
 
     if (!sound.music_timer)
         sound.music_timer = MUSIC_TIMER;
@@ -310,9 +310,6 @@ void Config::load()
     controls.steer_speed   = dc_xml_int(dc_xml, "controls.steerspeed", 3);
     controls.pedal_speed   = dc_xml_int(dc_xml, "controls.pedalspeed", 4);
     controls.rumble        = dc_xml_float(dc_xml, "controls.rumble", 1.0f);
-#ifdef __DREAMCAST__
-    controls.rumble        = 0.0f;
-#endif
     controls.keyconfig[0]  = dc_xml_int(dc_xml, "controls.keyconfig.up",      273);
     controls.keyconfig[1]  = dc_xml_int(dc_xml, "controls.keyconfig.down",    274);
     controls.keyconfig[2]  = dc_xml_int(dc_xml, "controls.keyconfig.left",    276);

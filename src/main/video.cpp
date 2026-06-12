@@ -33,6 +33,7 @@ Video video;
 
 #ifdef __DREAMCAST__
 #define DC_VIDEO_TRACE(...) dbglog(DBG_INFO, __VA_ARGS__)
+#define DC_VIDEO_PERF_INTERVAL_MS 30000
 #else
 #define DC_VIDEO_TRACE(...) do {} while (0)
 #endif
@@ -247,10 +248,12 @@ void Video::prepare_frame()
     perf_frame += SDL_GetTicks() - perf_frame_start;
     perf_frames++;
     const uint32_t perf_now = SDL_GetTicks();
-    if (perf_now - perf_last >= 1000)
+    if (perf_now - perf_last >= DC_VIDEO_PERF_INTERVAL_MS)
     {
-        DC_VIDEO_TRACE("cannonball: videoperf fps=%d total=%lu tile_update=%lu road_bg=%lu tile_bg=%lu tile_fg=%lu road_fg=%lu sprites=%lu text=%lu black=%lu\n",
-                       perf_frames,
+        const uint32_t perf_elapsed = perf_now - perf_last;
+        const uint32_t perf_fps = (perf_frames * 1000) / perf_elapsed;
+        DC_VIDEO_TRACE("cannonball: videoperf fps=%lu total=%lu tile_update=%lu road_bg=%lu tile_bg=%lu tile_fg=%lu road_fg=%lu sprites=%lu text=%lu black=%lu\n",
+                       perf_fps,
                        (unsigned long)(perf_frame / perf_frames),
                        (unsigned long)(perf_tile_update / perf_frames),
                        (unsigned long)(perf_road_bg / perf_frames),
